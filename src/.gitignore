@@ -1,0 +1,16 @@
+# Build output
+*.exe
+
+# SFML DLLs (can be re-copied later)
+*.dll
+
+# Object files
+*.o
+
+# VS Code cache (optional)
+.vscode/ipch/
+
+# OS junk
+.DS_Store
+Thumbs.db
+# --- IGNORE ---
