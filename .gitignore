@@ -1,0 +1,23 @@
+# build folders
+build/
+dist/
+
+# binaries
+*.exe
+*.dll
+
+# object files
+*.o
+*.obj
+
+# debug / IDE noise
+*.pdb
+*.ilk
+*.log
+
+# old vendored deps
+include/SFML_OLD/
+lib_OLD/
+
+# editor
+.vscode/

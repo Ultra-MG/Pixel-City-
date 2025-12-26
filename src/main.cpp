@@ -1,20 +1,26 @@
 #include <SFML/Graphics.hpp>
+#include <optional>
+#include <iostream>
 
-int main() {
+int main()
+{
+    std::cout<<"hello";
     sf::RenderWindow window(
-        sf::VideoMode(800, 600),
-        "SFML Works"
+        sf::VideoMode(sf::Vector2u{800u, 600u}),
+        "Pixel City"
     );
 
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
+    while (window.isOpen())
+    {
+        while (const std::optional<sf::Event> event = window.pollEvent())
+        {
+            if (event->is<sf::Event::Closed>())
                 window.close();
         }
-        window.clear();
+
+        window.clear(sf::Color::Black);
         window.display();
     }
+
     return 0;
 }
-// This code creates a simple SFML window with the title "SFML Works".
