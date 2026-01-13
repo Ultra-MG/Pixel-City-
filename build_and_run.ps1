@@ -28,6 +28,9 @@ export PATH='$UCRT64_PREFIX':`$PATH
 cd '$MSYS_PROJECT_DIR' &&
 mkdir -p dist &&
 cp build/PixelCity.exe dist/ &&
+cp -r -u assets dist/ &&
+
+# Copy DLL dependencies into dist/
 ldd build/PixelCity.exe \
  | awk '/\/ucrt64\/bin\/.*\.dll/ {print \$3}' \
  | sort -u \
