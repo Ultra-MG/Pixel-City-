@@ -2,10 +2,13 @@
 #include "core/Config.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Window/Mouse.hpp>
 
 #include <iostream>
+#include <cmath>
+
+static float len2(float x, float y) { return x * x + y * y; }
 
 BuilderScene::BuilderScene(sf::RenderWindow& window, float internalW, float internalH, int tileSize)
 : m_window(window)
@@ -20,15 +23,38 @@ BuilderScene::BuilderScene(sf::RenderWindow& window, float internalW, float inte
   const float mapH = (float)(cfg::CityH * cfg::TileSize);
   m_camera.setCenter({ mapW * 0.5f, mapH * 0.5f });
 
-  // UI view matches INTERNAL resolution (critical for text/UI placement)
+  // UI view matches INTERNAL resolution
   m_uiView.setSize((float)cfg::InternalW, (float)cfg::InternalH);
   m_uiView.setCenter((float)cfg::InternalW * 0.5f, (float)cfg::InternalH * 0.5f);
 
-  // Load font (optional). Put it at: project-root/assets/ui.ttf (script copies to dist/assets/ui.ttf)
   m_fontOk = m_font.loadFromFile("assets/ui.ttf");
   if (!m_fontOk) {
     std::cerr << "⚠️ UI font failed to load: assets/ui.ttf\n";
   }
+
+  // ----------------------------
+  // SMALL wheel bottom-right
+  // ----------------------------
+  RadialMenu::Style st;
+  st.innerRadius = 7.f;    // was 4
+  st.outerRadius = 20.f;   // was 12
+  st.iconSize    = 10.f;   // was 6
+  st.arcSteps    = 10;
+  m_wheel.setStyle(st);
+
+  // Slightly more margin from corner
+  m_wheel.setCenter({
+    (float)cfg::InternalW - 26.f,
+    (float)cfg::InternalH - 26.f
+  });
+
+  // Icons optional (placeholders will show if missing, because RadialMenu creates them)
+  m_wheel.clearItems();
+  m_wheel.addItem(1, "assets/icon_road.png", true);
+  m_wheel.addItem(2, "assets/icon_house.png", true);
+
+  m_constructOpen = false;
+  m_wheel.setOpen(false);
 }
 
 void BuilderScene::beginFrame() { m_input.beginFrame(); }
@@ -49,71 +75,28 @@ void BuilderScene::updateHoverTile() {
   m_hoverTx = (int)(world.x) / cfg::TileSize;
   m_hoverTy = (int)(world.y) / cfg::TileSize;
 
+  // ✅ Make houses (2x2) always stay in bounds when selected
+  int maxX = m_city.w() - 1;
+  int maxY = m_city.h() - 1;
+  if (m_tool == BuildTool::PlaceHouse) {
+    maxX = m_city.w() - 2;
+    maxY = m_city.h() - 2;
+  }
+  if (maxX < 0) maxX = 0;
+  if (maxY < 0) maxY = 0;
+
   if (m_hoverTx < 0) m_hoverTx = 0;
   if (m_hoverTy < 0) m_hoverTy = 0;
-  if (m_hoverTx >= m_city.w()) m_hoverTx = m_city.w() - 1;
-  if (m_hoverTy >= m_city.h()) m_hoverTy = m_city.h() - 1;
-}
-
-// Smaller buttons (good for InternalW=320..640)
-sf::FloatRect BuilderScene::rectConstructButton() const {
-  const float w = 60.f;
-  const float h = 16.f;
-  return sf::FloatRect((float)cfg::InternalW - w - 4.f,
-                       (float)cfg::InternalH - h - 4.f,
-                       w, h);
-}
-
-sf::FloatRect BuilderScene::rectHouseButton() const {
-  auto c = rectConstructButton();
-  return sf::FloatRect(c.left, c.top - 18.f, c.width, 16.f);
-}
-
-sf::FloatRect BuilderScene::rectRoadButton() const {
-  auto c = rectConstructButton();
-  return sf::FloatRect(c.left, c.top - 36.f, c.width, 16.f);
-}
-
-bool BuilderScene::mouseIn(const sf::FloatRect& r, const sf::Vector2f& mouseInternal) const {
-  return r.contains(mouseInternal);
-}
-
-void BuilderScene::drawButton(sf::RenderTarget& target,
-                              const sf::FloatRect& r,
-                              bool active,
-                              const char* label,
-                              sf::Color iconColor) const
-{
-  sf::RectangleShape bg;
-  bg.setPosition(r.left, r.top);
-  bg.setSize({r.width, r.height});
-  bg.setFillColor(active ? sf::Color(255,255,255,40) : sf::Color(0,0,0,130));
-  bg.setOutlineThickness(1.f);
-  bg.setOutlineColor(sf::Color(255,255,255,70));
-  target.draw(bg);
-
-  // small icon square (always visible even if font fails)
-  sf::RectangleShape icon;
-  icon.setSize({8.f, 8.f});
-  icon.setPosition(r.left + 4.f, r.top + 4.f);
-  icon.setFillColor(iconColor);
-  target.draw(icon);
-
-  // label text (only if font loaded)
-  if (m_fontOk) {
-    sf::Text t;
-    t.setFont(m_font);
-    t.setString(label);
-    t.setCharacterSize(9);
-    t.setFillColor(sf::Color(255,255,255,230));
-    t.setPosition(r.left + 16.f, r.top + 2.f);
-    target.draw(t);
-  }
+  if (m_hoverTx > maxX) m_hoverTx = maxX;
+  if (m_hoverTy > maxY) m_hoverTy = maxY;
 }
 
 void BuilderScene::update(float) {
-  const sf::Vector2f mouseInternal = windowMouseToInternal();
   updateHoverTile();
+
+  // UI mouse coords (robust)
+  const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
+  const sf::Vector2f mouseUI = m_window.mapPixelToCoords(mp, m_uiView);
 
   // Pan camera with right-drag
   if (m_input.draggingRight()) {
@@ -126,62 +109,81 @@ void BuilderScene::update(float) {
     m_camera.move(sf::Vector2f(-dInternal.x / z, -dInternal.y / z));
   }
 
-  // Zoom with wheel
+  // Zoom
   const float wheel = m_input.wheelDelta();
   if (wheel != 0.f) {
     if (wheel > 0) m_camera.zoom(cfg::ZoomStep);
     else           m_camera.zoom(1.0f / cfg::ZoomStep);
   }
 
-  // --- UI click handling first ---
-  const auto rConstruct = rectConstructButton();
-  const auto rHouse = rectHouseButton();
-  const auto rRoad  = rectRoadButton();
+  // Ghost validity
+  m_canPlaceGhostRoad = m_city.canPlaceRoadAt(m_hoverTx, m_hoverTy);
 
+  Building ghostHouse;
+  ghostHouse.type  = BuildingType::House;
+  ghostHouse.x     = m_hoverTx;
+  ghostHouse.y     = m_hoverTy;
+  ghostHouse.w     = 2;
+  ghostHouse.h     = 2;
+  ghostHouse.level = 1;
+  m_canPlaceGhostHouse = m_city.canPlaceBuilding(ghostHouse);
+
+  // ----------------------------------------------------
+  // ✅ Click hitboxes scale with wheel size (fix)
+  // ----------------------------------------------------
   if (m_input.leftPressed()) {
-    if (mouseIn(rConstruct, mouseInternal)) {
+    const sf::Vector2f c = m_wheel.center();
+    const float dx = mouseUI.x - c.x;
+    const float dy = mouseUI.y - c.y;
+    const float d2 = len2(dx, dy);
+
+    const float rInner = m_wheel.style().innerRadius;
+    const float rOuter = m_wheel.style().outerRadius;
+
+    // Small proportional assistance (NOT a fixed +8)
+    const float help = 1.25f;
+
+    const float centerHit = rInner * help;
+    const float ringInner = rInner * help;
+    const float ringOuter = rOuter * help;
+
+    const float centerHit2 = centerHit * centerHit;
+    const float ringInner2 = ringInner * ringInner;
+    const float ringOuter2 = ringOuter * ringOuter;
+
+    // Center click toggles wheel
+    if (d2 <= centerHit2) {
       m_constructOpen = !m_constructOpen;
-      if (!m_constructOpen) m_tool = BuildTool::None; // back to grass-only
+      if (!m_constructOpen) m_tool = BuildTool::None;
       return;
     }
 
-    if (m_constructOpen && mouseIn(rHouse, mouseInternal)) {
-      m_tool = BuildTool::PlaceHouse;
-      m_constructOpen = false;
-      return;
-    }
-
-    if (m_constructOpen && mouseIn(rRoad, mouseInternal)) {
-      m_tool = BuildTool::PlaceRoad;
-      m_constructOpen = false;
-      return;
-    }
-
-    // click outside closes + grass-only
+    // If open and click inside ring:
+    // TOP half => Road, BOTTOM half => House
     if (m_constructOpen) {
+      if (d2 >= ringInner2 && d2 <= ringOuter2) {
+        if (dy < 0.f) m_tool = BuildTool::PlaceRoad;
+        else          m_tool = BuildTool::PlaceHouse;
+
+        m_constructOpen = false;
+        return;
+      }
+
+      // click outside ring closes
       m_constructOpen = false;
       m_tool = BuildTool::None;
       return;
     }
   }
 
-  // --- Map placement only if tool selected ---
+  // Map placement
   if (m_input.leftPressed()) {
     if (m_tool == BuildTool::PlaceRoad) {
-      // must not paint road over buildings (City::canPlaceRoadAt enforces)
-      if (m_city.canPlaceRoadAt(m_hoverTx, m_hoverTy)) {
+      if (m_canPlaceGhostRoad) {
         m_city.setTile(m_hoverTx, m_hoverTy, Tile::Road);
       }
     } else if (m_tool == BuildTool::PlaceHouse) {
-      // must not place on roads + must not overlap buildings (City::canPlaceBuilding enforces)
-      Building house;
-      house.type = BuildingType::House;
-      house.x = m_hoverTx;
-      house.y = m_hoverTy;
-      house.w = 2;
-      house.h = 2;
-      house.level = 1;
-
+      Building house = ghostHouse;
       if (m_city.canPlaceBuilding(house)) {
         m_city.placeBuilding(house);
       }
@@ -195,24 +197,37 @@ void BuilderScene::render(sf::RenderTarget& target) {
   m_renderer.draw(target, m_city);
   m_renderer.drawTileHover(target, m_hoverTx, m_hoverTy);
 
-  // House ghost only in house mode
+  // Ghosts
+  if (m_tool == BuildTool::PlaceRoad) {
+    m_renderer.drawGhostRoad(target, m_hoverTx, m_hoverTy, m_canPlaceGhostRoad);
+  }
   if (m_tool == BuildTool::PlaceHouse) {
-    Building ghost;
-    ghost.x = m_hoverTx;
-    ghost.y = m_hoverTy;
-    ghost.w = 2;
-    ghost.h = 2;
-    const bool ok = m_city.canPlaceBuilding(ghost);
-    m_renderer.drawGhostHouse(target, m_hoverTx, m_hoverTy, ok);
+    m_renderer.drawGhostHouse(target, m_hoverTx, m_hoverTy, m_canPlaceGhostHouse);
   }
 
-  // UI in INTERNAL coordinates (critical)
+  // UI
   target.setView(m_uiView);
 
-  drawButton(target, rectConstructButton(), false, "Construct", sf::Color(200,200,200,220));
+  // Always draw center button
+  const sf::Vector2f c = m_wheel.center();
+  const float rInner = m_wheel.style().innerRadius;
 
+  sf::CircleShape center;
+  center.setRadius(rInner);
+  center.setOrigin(rInner, rInner);
+  center.setPosition(c);
+  center.setFillColor(sf::Color(0, 0, 0, 190));
+  center.setOutlineThickness(1.f);
+  center.setOutlineColor(sf::Color(255, 0, 0, 220));
+  target.draw(center);
+
+  // Draw wheel only when open
   if (m_constructOpen) {
-    drawButton(target, rectRoadButton(),  (m_tool == BuildTool::PlaceRoad),  "Road",  sf::Color(140,140,140,220));
-    drawButton(target, rectHouseButton(), (m_tool == BuildTool::PlaceHouse), "House", sf::Color(220,200,120,220));
+    const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
+    const sf::Vector2f mouseUI = m_window.mapPixelToCoords(mp, m_uiView);
+
+    m_wheel.setOpen(true);
+    m_wheel.draw(target, mouseUI);
+    m_wheel.setOpen(false);
   }
 }

@@ -1,6 +1,7 @@
 #include "world/City.hpp"
 
-City::City(int w, int h) : m_w(w), m_h(h), m_tiles((size_t)w * (size_t)h, Tile::Grass) {}
+City::City(int w, int h)
+: m_w(w), m_h(h), m_tiles((size_t)w * (size_t)h, Tile::Grass) {}
 
 bool City::inBounds(int x, int y) const {
   return x >= 0 && y >= 0 && x < m_w && y < m_h;
@@ -46,9 +47,32 @@ bool City::rectHasRoad(int x, int y, int w, int h) const {
   return false;
 }
 
+// NEW: House must touch a road (4-neighborhood) on its border
+bool City::buildingHasRoadAccess(const Building& b) const {
+  // Check all tiles around the building border (outside the rect):
+  // Top edge neighbors
+  for (int xx = b.x; xx < b.x + b.w; ++xx) {
+    if (inBounds(xx, b.y - 1) && getTile(xx, b.y - 1) == Tile::Road) return true;
+  }
+  // Bottom edge neighbors
+  for (int xx = b.x; xx < b.x + b.w; ++xx) {
+    if (inBounds(xx, b.y + b.h) && getTile(xx, b.y + b.h) == Tile::Road) return true;
+  }
+  // Left edge neighbors
+  for (int yy = b.y; yy < b.y + b.h; ++yy) {
+    if (inBounds(b.x - 1, yy) && getTile(b.x - 1, yy) == Tile::Road) return true;
+  }
+  // Right edge neighbors
+  for (int yy = b.y; yy < b.y + b.h; ++yy) {
+    if (inBounds(b.x + b.w, yy) && getTile(b.x + b.w, yy) == Tile::Road) return true;
+  }
+
+  return false;
+}
+
 bool City::canPlaceRoadAt(int tx, int ty) const {
   if (!inBounds(tx, ty)) return false;
-  // ❌ road cannot go on top of a building
+  // road cannot go on top of a building
   if (hasBuildingAt(tx, ty)) return false;
   return true;
 }
@@ -56,11 +80,16 @@ bool City::canPlaceRoadAt(int tx, int ty) const {
 bool City::canPlaceBuilding(const Building& b) const {
   if (!rectInBounds(b.x, b.y, b.w, b.h)) return false;
 
-  // ❌ building cannot overlap another building
+  // building cannot overlap another building
   if (rectOverlapsBuilding(b.x, b.y, b.w, b.h)) return false;
 
-  // ❌ building cannot be placed on top of roads
+  // building cannot be placed on top of roads
   if (rectHasRoad(b.x, b.y, b.w, b.h)) return false;
+
+  // NEW: must have road access (only for houses right now)
+  if (b.type == BuildingType::House) {
+    if (!buildingHasRoadAccess(b)) return false;
+  }
 
   return true;
 }

@@ -28,7 +28,7 @@ public:
   // --- Placement rules ---
   bool hasBuildingAt(int tx, int ty) const;               // any building covers this tile?
   bool canPlaceRoadAt(int tx, int ty) const;              // road must not overlap building
-  bool canPlaceBuilding(const Building& b) const;         // building must not overlap building OR roads
+  bool canPlaceBuilding(const Building& b) const;         // building must not overlap building OR roads, AND must have road access
   void placeBuilding(const Building& b);
 
 private:
@@ -41,4 +41,7 @@ private:
   bool rectInBounds(int x, int y, int w, int h) const;
   bool rectOverlapsBuilding(int x, int y, int w, int h) const;
   bool rectHasRoad(int x, int y, int w, int h) const;
+
+  // NEW: connectivity rule
+  bool buildingHasRoadAccess(const Building& b) const;
 };

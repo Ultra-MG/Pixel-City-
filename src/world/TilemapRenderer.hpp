@@ -13,6 +13,7 @@ public:
 
   void draw(sf::RenderTarget& target, const City& city) const;
   void drawGhostHouse(sf::RenderTarget& target, int tx, int ty, bool valid) const;
+  void drawGhostRoad(sf::RenderTarget& target, int tx, int ty, bool valid) const;
   void drawTileHover(sf::RenderTarget& target, int tx, int ty) const;
 
 private:
@@ -26,6 +27,11 @@ private:
 
   sf::Texture m_houseTex;
   mutable sf::Sprite m_houseSprite;
+
+  // ✅ NEW for trees (doesn't affect constructor args)
+  sf::Texture m_treeTex;
+  mutable sf::Sprite m_treeSprite;
+  bool m_treeOk = false;
 
   void scaleSpriteToTile(sf::Sprite& spr, const sf::Texture& tex) const;
 };

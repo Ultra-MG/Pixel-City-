@@ -1,7 +1,6 @@
 #include "world/TilemapRenderer.hpp"
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <stdexcept>
-#include <algorithm>
 
 TilemapRenderer::TilemapRenderer(int tileSize,
                                  const char* grassPath,
@@ -51,27 +50,33 @@ void TilemapRenderer::draw(sf::RenderTarget& target, const City& city) const {
     }
   }
 
-  // Draw buildings scaled to their footprint (so they fit the grid)
-  const auto hs = m_houseTex.getSize();
-  if (hs.x == 0 || hs.y == 0) return;
-
+  // Draw buildings scaled to their footprint
   for (const auto& build : city.buildings()) {
-    const float px = (float)(build.x * m_tile);
-    const float py = (float)(build.y * m_tile);
-    const float pw = (float)(build.w * m_tile);
-    const float ph = (float)(build.h * m_tile);
+    switch (build.type) {
+      case BuildingType::House: {
+        const auto hs = m_houseTex.getSize();
+        if (hs.x == 0 || hs.y == 0) break;
 
-    m_houseSprite.setPosition(px, py);
-    m_houseSprite.setScale(pw / (float)hs.x, ph / (float)hs.y);
+        const float px = (float)(build.x * m_tile);
+        const float py = (float)(build.y * m_tile);
+        const float pw = (float)(build.w * m_tile);
+        const float ph = (float)(build.h * m_tile);
 
-    // Optional: tint slightly by level so upgrades are visible
-    const int boost = std::min(60, (build.level - 1) * 10);
-    m_houseSprite.setColor(sf::Color(255, 255 - boost, 255 - boost, 255));
+        m_houseSprite.setPosition(px, py);
+        m_houseSprite.setScale(pw / (float)hs.x, ph / (float)hs.y);
 
-    target.draw(m_houseSprite);
+        // Optional: tint slightly by level so upgrades are visible
+        const int boost = std::min(60, (build.level - 1) * 10);
+        m_houseSprite.setColor(sf::Color(255, 255 - boost, 255 - boost, 255));
+
+        target.draw(m_houseSprite);
+        m_houseSprite.setColor(sf::Color::White);
+      } break;
+
+      default:
+        break;
+    }
   }
-
-  m_houseSprite.setColor(sf::Color::White);
 }
 
 void TilemapRenderer::drawTileHover(sf::RenderTarget& target, int tx, int ty) const {
@@ -100,4 +105,17 @@ void TilemapRenderer::drawGhostHouse(sf::RenderTarget& target, int tx, int ty, b
 
   target.draw(m_houseSprite);
   m_houseSprite.setColor(sf::Color::White);
+}
+
+// NEW: Road ghost preview (1 tile)
+void TilemapRenderer::drawGhostRoad(sf::RenderTarget& target, int tx, int ty, bool valid) const {
+  const float px = (float)(tx * m_tile);
+  const float py = (float)(ty * m_tile);
+
+  m_roadSprite.setPosition(px, py);
+  m_roadSprite.setColor(valid ? sf::Color(80, 255, 120, 160)
+                              : sf::Color(255, 80, 80, 160));
+
+  target.draw(m_roadSprite);
+  m_roadSprite.setColor(sf::Color::White);
 }
