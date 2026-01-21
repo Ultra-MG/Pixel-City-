@@ -1,26 +1,8 @@
-#include <SFML/Graphics.hpp>
-#include <optional>
-#include <iostream>
+// main.cpp
+#include "core/Game.hpp"
 
-int main()
-{
-    std::cout<<"hello";
-    sf::RenderWindow window(
-        sf::VideoMode(sf::Vector2u{800u, 600u}),
-        "Pixel City"
-    );
-
-    while (window.isOpen())
-    {
-        while (const std::optional<sf::Event> event = window.pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-                window.close();
-        }
-
-        window.clear(sf::Color::Black);
-        window.display();
-    }
-
+int main() {
+    Game game;
+    game.run();   // Game owns clear / draw / display
     return 0;
 }

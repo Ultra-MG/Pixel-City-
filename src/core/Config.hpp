@@ -9,11 +9,11 @@ namespace cfg {
   inline constexpr std::uint32_t WindowW = InternalW * Scale;
   inline constexpr std::uint32_t WindowH = InternalH * Scale;
 
-  inline constexpr int TileSize = 32;
+  inline constexpr int TileSize = 8;
 
   // City size in tiles
-  inline constexpr int CityW = 300;
-  inline constexpr int CityH = 300;
+  inline constexpr int CityW = 400;
+  inline constexpr int CityH = 400;
 
   // Camera controls
   inline constexpr float ZoomMin = 0.5f;

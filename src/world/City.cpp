@@ -8,7 +8,9 @@ bool City::inBounds(int x, int y) const {
 }
 
 bool City::rectInBounds(int x, int y, int w, int h) const {
-  return w > 0 && h > 0 && inBounds(x, y) && inBounds(x + w - 1, y + h - 1);
+  return w > 0 && h > 0 &&
+         inBounds(x, y) &&
+         inBounds(x + w - 1, y + h - 1);
 }
 
 Tile City::getTile(int x, int y) const {
@@ -21,79 +23,21 @@ void City::setTile(int x, int y, Tile t) {
   m_tiles[(size_t)y * (size_t)m_w + (size_t)x] = t;
 }
 
-bool City::hasBuildingAt(int tx, int ty) const {
-  for (const auto& b : m_buildings) {
-    if (tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h) return true;
+bool City::rectOverlapsAnyObject(int x, int y, int w, int h) const {
+  for (const auto& o : m_objects) {
+    if (x < (o->x + o->w) && (x + w) > o->x &&
+        y < (o->y + o->h) && (y + h) > o->y)
+      return true;
   }
   return false;
 }
 
-bool City::rectOverlapsBuilding(int x, int y, int w, int h) const {
-  for (const auto& b : m_buildings) {
-    const bool overlap =
-      x < (b.x + b.w) && (x + w) > b.x &&
-      y < (b.y + b.h) && (y + h) > b.y;
-    if (overlap) return true;
-  }
-  return false;
+bool City::canPlace(const Placeable& obj) const {
+  if (!rectInBounds(obj.x, obj.y, obj.w, obj.h)) return false;
+  if (rectOverlapsAnyObject(obj.x, obj.y, obj.w, obj.h)) return false;
+  return obj.canBePlaced(*this);
 }
 
-bool City::rectHasRoad(int x, int y, int w, int h) const {
-  for (int yy = y; yy < y + h; ++yy) {
-    for (int xx = x; xx < x + w; ++xx) {
-      if (getTile(xx, yy) == Tile::Road) return true;
-    }
-  }
-  return false;
-}
-
-// NEW: House must touch a road (4-neighborhood) on its border
-bool City::buildingHasRoadAccess(const Building& b) const {
-  // Check all tiles around the building border (outside the rect):
-  // Top edge neighbors
-  for (int xx = b.x; xx < b.x + b.w; ++xx) {
-    if (inBounds(xx, b.y - 1) && getTile(xx, b.y - 1) == Tile::Road) return true;
-  }
-  // Bottom edge neighbors
-  for (int xx = b.x; xx < b.x + b.w; ++xx) {
-    if (inBounds(xx, b.y + b.h) && getTile(xx, b.y + b.h) == Tile::Road) return true;
-  }
-  // Left edge neighbors
-  for (int yy = b.y; yy < b.y + b.h; ++yy) {
-    if (inBounds(b.x - 1, yy) && getTile(b.x - 1, yy) == Tile::Road) return true;
-  }
-  // Right edge neighbors
-  for (int yy = b.y; yy < b.y + b.h; ++yy) {
-    if (inBounds(b.x + b.w, yy) && getTile(b.x + b.w, yy) == Tile::Road) return true;
-  }
-
-  return false;
-}
-
-bool City::canPlaceRoadAt(int tx, int ty) const {
-  if (!inBounds(tx, ty)) return false;
-  // road cannot go on top of a building
-  if (hasBuildingAt(tx, ty)) return false;
-  return true;
-}
-
-bool City::canPlaceBuilding(const Building& b) const {
-  if (!rectInBounds(b.x, b.y, b.w, b.h)) return false;
-
-  // building cannot overlap another building
-  if (rectOverlapsBuilding(b.x, b.y, b.w, b.h)) return false;
-
-  // building cannot be placed on top of roads
-  if (rectHasRoad(b.x, b.y, b.w, b.h)) return false;
-
-  // NEW: must have road access (only for houses right now)
-  if (b.type == BuildingType::House) {
-    if (!buildingHasRoadAccess(b)) return false;
-  }
-
-  return true;
-}
-
-void City::placeBuilding(const Building& b) {
-  m_buildings.push_back(b);
+void City::place(std::unique_ptr<Placeable> obj) {
+  m_objects.push_back(std::move(obj));
 }

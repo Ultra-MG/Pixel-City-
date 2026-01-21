@@ -2,7 +2,7 @@
 #include "engine/Scene.hpp"
 #include <stdexcept>
 
-SceneManager::~SceneManager() = default; 
+SceneManager::~SceneManager() = default;
 
 void SceneManager::set(std::unique_ptr<Scene> scene) {
   m_scene = std::move(scene);

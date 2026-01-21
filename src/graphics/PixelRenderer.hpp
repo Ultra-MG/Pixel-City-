@@ -1,6 +1,8 @@
 #pragma once
+
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
 
 class PixelRenderer {
 public:

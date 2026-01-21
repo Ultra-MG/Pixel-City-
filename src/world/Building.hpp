@@ -1,15 +1,14 @@
 #pragma once
+#include "world/Placeable.hpp"
 #include <cstdint>
 
 enum class BuildingType : std::uint8_t {
-  House = 0
+  House, TownHall, Farm
 };
 
-struct Building {
-  BuildingType type = BuildingType::House;
-  int x = 0;     // tile coords (top-left)
-  int y = 0;
-  int w = 2;     // size in tiles (house 2x2 for example)
-  int h = 2;
+class Building : public Placeable {
+public:
+  virtual BuildingType type() const = 0;
+  virtual bool requiresRoadAccess() const { return false; }
   int level = 1;
 };

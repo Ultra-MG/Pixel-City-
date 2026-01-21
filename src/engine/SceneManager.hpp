@@ -6,7 +6,7 @@ class Scene;
 class SceneManager {
 public:
   SceneManager() = default;
-  ~SceneManager(); 
+  ~SceneManager();
 
   void set(std::unique_ptr<Scene> scene);
   Scene& current();

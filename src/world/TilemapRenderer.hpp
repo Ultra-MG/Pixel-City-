@@ -1,37 +1,22 @@
 #pragma once
-#include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/Graphics/Sprite.hpp>
+
+#include <SFML/Graphics.hpp>
+#include <optional>
 #include "world/City.hpp"
 
 class TilemapRenderer {
 public:
-  TilemapRenderer(int tileSize,
-                  const char* grassPath,
-                  const char* roadPath,
-                  const char* housePath);
+  TilemapRenderer(int tileSize, const char* grassPath);
 
-  void draw(sf::RenderTarget& target, const City& city) const;
-  void drawGhostHouse(sf::RenderTarget& target, int tx, int ty, bool valid) const;
-  void drawGhostRoad(sf::RenderTarget& target, int tx, int ty, bool valid) const;
+  void drawTiles(sf::RenderTarget& target, const City& city) const;
   void drawTileHover(sf::RenderTarget& target, int tx, int ty) const;
 
 private:
-  int m_tile;
+  int m_tile = 0;
 
   sf::Texture m_grassTex;
-  mutable sf::Sprite m_grassSprite;
+  mutable std::optional<sf::Sprite> m_grassSprite;
 
-  sf::Texture m_roadTex;
-  mutable sf::Sprite m_roadSprite;
-
-  sf::Texture m_houseTex;
-  mutable sf::Sprite m_houseSprite;
-
-  // ✅ NEW for trees (doesn't affect constructor args)
-  sf::Texture m_treeTex;
-  mutable sf::Sprite m_treeSprite;
-  bool m_treeOk = false;
-
-  void scaleSpriteToTile(sf::Sprite& spr, const sf::Texture& tex) const;
+  void scaleSpriteToTile(sf::Sprite& spr,
+                         const sf::Texture& tex) const;
 };

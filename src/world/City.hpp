@@ -1,17 +1,9 @@
 #pragma once
+
 #include <vector>
-#include <cstdint>
-
-enum class Tile : std::uint8_t { Grass = 0, Road };
-
-enum class BuildingType : std::uint8_t { House = 0 };
-
-struct Building {
-  BuildingType type = BuildingType::House;
-  int x = 0, y = 0;   // top-left tile
-  int w = 2, h = 2;   // size in tiles
-  int level = 1;
-};
+#include <memory>
+#include "world/Tile.hpp"
+#include "world/Placeable.hpp"
 
 class City {
 public:
@@ -23,25 +15,23 @@ public:
   Tile getTile(int x, int y) const;
   void setTile(int x, int y, Tile t);
 
-  const std::vector<Building>& buildings() const { return m_buildings; }
+  // GENERIC OBJECT ACCESS
+  const std::vector<std::unique_ptr<Placeable>>& objects() const {
+    return m_objects;
+  }
 
-  // --- Placement rules ---
-  bool hasBuildingAt(int tx, int ty) const;               // any building covers this tile?
-  bool canPlaceRoadAt(int tx, int ty) const;              // road must not overlap building
-  bool canPlaceBuilding(const Building& b) const;         // building must not overlap building OR roads, AND must have road access
-  void placeBuilding(const Building& b);
+  // PLACEMENT
+  bool canPlace(const Placeable& obj) const;
+  void place(std::unique_ptr<Placeable> obj);
 
 private:
   int m_w = 0;
   int m_h = 0;
+
   std::vector<Tile> m_tiles;
-  std::vector<Building> m_buildings;
+  std::vector<std::unique_ptr<Placeable>> m_objects;
 
   bool inBounds(int x, int y) const;
   bool rectInBounds(int x, int y, int w, int h) const;
-  bool rectOverlapsBuilding(int x, int y, int w, int h) const;
-  bool rectHasRoad(int x, int y, int w, int h) const;
-
-  // NEW: connectivity rule
-  bool buildingHasRoadAccess(const Building& b) const;
+  bool rectOverlapsAnyObject(int x, int y, int w, int h) const;
 };
