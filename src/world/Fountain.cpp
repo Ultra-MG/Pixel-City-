@@ -1,26 +1,24 @@
-// world/Road.cpp
-#include "world/Road.hpp"
-#include <SFML/Graphics/Sprite.hpp>
+#include "world/Fountain.hpp"
 
-sf::Texture Road::s_texture;
+sf::Texture Fountain::s_texture;
 
-Road::Road(int tx, int ty) {
+Fountain::Fountain(int tx, int ty)
+{
     x = tx;
     y = ty;
-    w = 1;
-    h = 1;
 }
 
-void Road::loadTexture() {
-    s_texture.loadFromFile("assets/road.png");
+void Fountain::loadTexture()
+{
+    s_texture.loadFromFile("assets/decorations/fountain.png");
 }
 
-
-bool Road::canBePlaced(const City&) const {
-    return true;
+bool Fountain::canBePlaced(const City&) const
+{
+    return true; // does not block
 }
 
-void Road::render(sf::RenderTarget& target) const {
+void Fountain::render(sf::RenderTarget& target) const {
     sf::Sprite s(s_texture);
 
     s.setPosition(sf::Vector2f{
@@ -37,7 +35,7 @@ void Road::render(sf::RenderTarget& target) const {
     target.draw(s);
 }
 
-void Road::renderGhost(sf::RenderTarget& target, bool valid) const {
+void Fountain::renderGhost(sf::RenderTarget& target, bool valid) const {
     sf::Sprite s(s_texture);
 
     s.setPosition(sf::Vector2f{

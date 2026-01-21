@@ -3,5 +3,6 @@
 enum class BuildTool {
   None = 0,
   PlaceHouse,
-  PlaceRoad
+  PlaceRoad,
+  PlaceFountain
 };

@@ -1,21 +1,19 @@
-// world/Road.hpp
 #pragma once
 
-#include "world/Placeable.hpp"
+#include "world/Decoration.hpp"
 #include "core/Config.hpp"
-#include "world/City.hpp"
-#include "world/Infrastructure.hpp"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-class Road : public Infrastructure {
+class Fountain : public Decoration {
 public:
-    Road(int tx, int ty);
+    Fountain(int tx, int ty);
 
     static void loadTexture();
 
-    int cost() const override { return 1; }
-    bool canBePlaced(const City&) const override;
+    int cost() const override { return 5; }
+
+    bool canBePlaced(const City& city) const override;
 
     void render(sf::RenderTarget& target) const override;
     void renderGhost(sf::RenderTarget& target, bool valid) const override;

@@ -33,7 +33,7 @@ void SidePanel::rebuildButtons()
     m_buttons.clear();
 
     if (m_page == Page::Categories)
-        m_buttons.reserve(2);
+        m_buttons.reserve(3);
     else
         m_buttons.reserve(buildCatalog().size() + 1);
 
@@ -89,6 +89,22 @@ void SidePanel::rebuildButtons()
             b.setImageSize({20.f, 20.f});
             b.setImageOffset({4.f, 2.f});
             b.setText(m_font, "Infrastructure", 7, sf::Color::Black);
+            b.setTextOffset({28.f, 8.f});
+
+            y += 30.f;
+        }
+
+        {
+
+            m_buttons.emplace_back(sf::Vector2f{120.f, 24.f}, sf::Vector2f{10.f, y});
+            auto &b = m_buttons.back();
+
+            b.category = BuildCategory::Decorations;
+            b.setOutline(sf::Color(120, 80, 85), 1.f);
+            b.loadImage("assets/categories/decorations.png");
+            b.setImageSize({20.f, 20.f});
+            b.setImageOffset({4.f, 2.f});
+            b.setText(m_font, "Decoration", 7, sf::Color::Black);
             b.setTextOffset({28.f, 8.f});
 
             y += 30.f;
@@ -166,9 +182,10 @@ void SidePanel::render(sf::RenderTarget &target)
 
     target.draw(m_bg);
 
-    for (auto &b : m_buttons){
+    for (auto &b : m_buttons)
+    {
         b.draw(target);
     }
-    
+
     m_discardButton.draw(target);
 }

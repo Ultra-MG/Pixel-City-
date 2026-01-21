@@ -5,7 +5,8 @@
 
 enum class BuildCategory {
   Infrastructure,
-  Building
+  Building,
+  Decorations
 };
 
 struct BuildEntry {
@@ -18,7 +19,8 @@ struct BuildEntry {
 inline const std::vector<BuildEntry>& buildCatalog() {
   static const std::vector<BuildEntry> entries = {
     { BuildCategory::Infrastructure, BuildTool::PlaceRoad,  "Road",  "assets/road.png"  },
-    { BuildCategory::Building,       BuildTool::PlaceHouse, "House", "assets/house.png" }
+    { BuildCategory::Building,       BuildTool::PlaceHouse, "House", "assets/house.png" },
+    { BuildCategory::Decorations,          BuildTool::PlaceFountain, "Fountain", "assets/Decorations/fountain.png" }
   };
   return entries;
 }

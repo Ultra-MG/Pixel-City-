@@ -6,7 +6,7 @@
 #include "game/BuildToolFactory.hpp"
 #include "world/House.hpp"
 #include "world/Road.hpp"
-
+#include "world/Fountain.hpp"
 
 Game::Game()
     : m_window(
@@ -31,6 +31,10 @@ Game::Game()
   factory.registerTool(BuildTool::PlaceRoad,
                        [](int x, int y)
                        { return std::make_unique<Road>(x, y); });
+
+  factory.registerTool(BuildTool::PlaceFountain,
+                       [](int x, int y)
+                       { return std::make_unique<Fountain>(x, y); });
 }
 
 void Game::run()

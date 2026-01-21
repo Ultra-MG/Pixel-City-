@@ -4,6 +4,7 @@
 #include "core/Config.hpp"
 #include "world/House.hpp"
 #include "world/Road.hpp"
+#include "world/Fountain.hpp"
 #include <iostream>
 #include "game/BuildToolFactory.hpp"
 #include <algorithm>
@@ -34,6 +35,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
 
   House::loadTexture();
   Road::loadTexture();
+  Fountain::loadTexture();
 }
 
 // ------------------------------------------------------------
@@ -78,21 +80,13 @@ void BuilderScene::update(float)
 
   if (m_panel.isOpen())
   {
-    // m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
-    // m_panelButton.setOutline(sf::Color(70, 70, 75), 1.f);
-
     m_panelButton.loadImage("assets/ui/close.png");
     m_panelButton.setImageSize({16.f, 16.f});
-    // m_panelButton.setImageOffset({2.f, 2.f});
   }
   else
   {
-    // m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
-    // m_panelButton.setOutline(sf::Color(70, 70, 75), 1.f);
-
     m_panelButton.loadImage("assets/ui/build_button.png");
     m_panelButton.setImageScale({0.2f, 0.2f});
-    // m_panelButton.setImageOffset({2.f, 2.f});
   }
 
   const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
@@ -101,12 +95,9 @@ void BuilderScene::update(float)
 
   const bool click = m_input.leftPressed();
 
-  // =========================
-  // UI (panel) interaction
-  // =========================
   if (click)
   {
-    // Toggle panel
+
     if (m_panelButton.contains(mouseUI))
     {
       m_panel.toggle();
@@ -116,8 +107,6 @@ void BuilderScene::update(float)
     if (m_panel.handleClick(mouseUI))
     {
       BuildTool newTool = m_panel.selectedTool();
-
-      // Only react if a PLACE tool was actually selected
 
       if (newTool == BuildTool::None)
       {
@@ -139,7 +128,7 @@ void BuilderScene::update(float)
         m_canPlaceGhost = m_city.canPlace(*m_ghost);
       }
 
-      return; // UI click always consumes input
+      return;
     }
   }
 
