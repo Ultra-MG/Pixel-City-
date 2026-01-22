@@ -18,6 +18,7 @@
 #include "world/Decorations/LampPost.hpp"
 #include "game/BuildToolFactory.hpp"
 #include "game/Economy.hpp"
+#include "world/Building.hpp"
 #include <SFML/Window/Mouse.hpp>
 #include <stdexcept>
 #include <algorithm>
@@ -76,6 +77,10 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   {
     throw std::runtime_error("BuilderScene: failed to load font");
   }
+  m_uiFont.setSmooth(false);
+
+  m_toastText.emplace(m_uiFont, "", 10);
+  m_toastText->setFillColor(sf::Color(255, 230, 180));
 
   m_moneyText.setFillColor(sf::Color::White);
   m_diamondText.setFillColor(sf::Color::White);
@@ -105,9 +110,22 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
   m_panelButton.setOutline(sf::Color(70, 70, 75), 1.f);
 
-  m_panelButton.loadImage("assets/ui/build_button.png");
-  m_panelButton.setImageScale({0.2f, 0.2f});
-  m_panelButton.setImageOffset({2.f, 2.f});
+  m_panelButton.loadImage("assets/ui/hammer.png");
+  m_panelButton.setImageSize({20.f, 20.f});
+  m_panelButton.setImageOffset({0.f, 0.f});
+
+  m_deleteBg.setSize({140.f, 48.f});
+  m_deleteBg.setFillColor(sf::Color(30, 30, 30, 220));
+  m_deleteBg.setOutlineColor(sf::Color(120, 80, 85));
+  m_deleteBg.setOutlineThickness(1.f);
+  m_deleteLabel.emplace(m_uiFont, "Delete object?", 10);
+  m_deleteLabel->setFillColor(sf::Color(245, 240, 220));
+  m_deleteYes = PanelButton(sf::Vector2f{50.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_deleteNo = PanelButton(sf::Vector2f{50.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_deleteYes.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_deleteNo.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_deleteYes.setText(m_uiFont, "Yes", 7, sf::Color::Black);
+  m_deleteNo.setText(m_uiFont, "No", 7, sf::Color::Black);
 
   Road::loadTexture();
   Water::loadTexture();
@@ -274,6 +292,33 @@ void BuilderScene::update(float dt)
 
   updateHoverTile();
 
+  // =========================
+  // Camera controls
+  // =========================
+  const float wheel = m_input.wheelDelta();
+  if (wheel != 0.f)
+  {
+    const float zoomFactor = (wheel > 0.f) ? 1.1f : 0.9f;
+    m_camera.zoom(zoomFactor);
+  }
+
+  if (m_input.draggingRight())
+  {
+    const sf::Vector2i drag = m_input.dragDelta();
+    const sf::Vector2f originWorld = m_camera.screenToWorld({0.f, 0.f});
+    const sf::Vector2f dragWorld =
+        m_camera.screenToWorld({static_cast<float>(drag.x), static_cast<float>(drag.y)});
+    const sf::Vector2f deltaWorld = dragWorld - originWorld;
+    m_camera.move(-deltaWorld);
+  }
+
+  if (m_toastTimer > 0.f)
+  {
+    m_toastTimer -= dt;
+    if (m_toastTimer <= 0.f)
+      m_toastTimer = 0.f;
+  }
+
   m_timeAccMs += static_cast<std::int64_t>(dt * 1000);
 
   if (m_timeAccMs >= 1000)
@@ -291,12 +336,14 @@ void BuilderScene::update(float dt)
   if (m_panel.isOpen())
   {
     m_panelButton.loadImage("assets/ui/close.png");
-    m_panelButton.setImageSize({16.f, 16.f});
+    m_panelButton.setImageSize({18.f, 18.f});
+    m_panelButton.setImageOffset({1.f, 1.f});
   }
   else
   {
-    m_panelButton.loadImage("assets/ui/build_button.png");
-    m_panelButton.setImageScale({0.2f, 0.2f});
+    m_panelButton.loadImage("assets/ui/hammer.png");
+    m_panelButton.setImageSize({20.f, 20.f});
+    m_panelButton.setImageOffset({0.f, 0.f});
   }
 
   const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
@@ -304,6 +351,31 @@ void BuilderScene::update(float dt)
       m_window.mapPixelToCoords(mp, m_uiView);
 
   const bool click = m_input.leftPressed();
+  const bool leftDown = m_input.leftDown();
+
+  if (m_deletePromptVisible)
+  {
+    if (click)
+    {
+      if (m_deleteYes.contains(mouseUI))
+      {
+        if (m_city.removePlaceable(m_deleteTarget))
+          saveGame();
+        m_deletePromptVisible = false;
+        m_deleteTarget = nullptr;
+        return;
+      }
+      if (m_deleteNo.contains(mouseUI))
+      {
+        m_deletePromptVisible = false;
+        m_deleteTarget = nullptr;
+        return;
+      }
+      m_deletePromptVisible = false;
+      m_deleteTarget = nullptr;
+      return;
+    }
+  }
 
   if (click)
   {
@@ -384,6 +456,49 @@ void BuilderScene::update(float dt)
   }
 
   // =========================
+  // Long press delete prompt
+  // =========================
+  if (!m_deletePromptVisible && leftDown &&
+      m_activeTool == BuildTool::None && !m_cropMenuVisible)
+  {
+    auto *p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
+    if (p)
+    {
+      if (!p->canBeDeleted())
+      {
+        showToast("Can't delete this", 1.5f);
+        m_holdTarget = nullptr;
+        m_holdTime = 0.f;
+        return;
+      }
+      if (p != m_holdTarget)
+      {
+        m_holdTarget = p;
+        m_holdTime = 0.f;
+      }
+      else
+      {
+        m_holdTime += dt;
+        if (m_holdTime >= m_holdThreshold)
+        {
+          showDeletePrompt(mouseUI, p);
+          m_holdTime = 0.f;
+        }
+      }
+    }
+    else
+    {
+      m_holdTarget = nullptr;
+      m_holdTime = 0.f;
+    }
+  }
+  else if (!leftDown)
+  {
+    m_holdTarget = nullptr;
+    m_holdTime = 0.f;
+  }
+
+  // =========================
   // Ghost update (world)
   // =========================
   if (m_ghost)
@@ -411,6 +526,17 @@ void BuilderScene::update(float dt)
     if (m_ghost)
       m_canPlaceGhost = m_city.canPlace(*m_ghost);
   }
+  else if (click && m_ghost && !m_canPlaceGhost)
+  {
+    if (auto *b = dynamic_cast<Building *>(m_ghost.get()))
+    {
+      if (b->requiresRoadAccess() &&
+          !m_city.hasRoadAdjacent(m_ghost->x, m_ghost->y, m_ghost->w, m_ghost->h))
+      {
+        showToast("Build a road first", 2.0f);
+      }
+    }
+  }
 
   updateCurrencyUI();
 }
@@ -426,6 +552,57 @@ void BuilderScene::saveGame()
 
   const GameState state = SaveSystem::buildState(m_cityName, m_city, m_wallet);
   SaveSystem::saveState(state);
+}
+
+// ------------------------------------------------------------
+
+void BuilderScene::showToast(const std::string &text, float seconds)
+{
+  if (!m_toastText)
+    return;
+
+  m_toastText->setString(text);
+  const sf::FloatRect bounds = m_toastText->getLocalBounds();
+  m_toastText->setOrigin({bounds.position.x + bounds.size.x * 0.5f,
+                          bounds.position.y + bounds.size.y * 0.5f});
+  const sf::Vector2f viewSize = m_uiView.getSize();
+  m_toastText->setPosition({viewSize.x * 0.5f, 18.f});
+  m_toastTimer = seconds;
+}
+
+// ------------------------------------------------------------
+
+void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target)
+{
+  if (!target || !target->canBeDeleted())
+    return;
+  m_deletePromptVisible = true;
+  m_deleteTarget = target;
+
+  const sf::Vector2f viewSize = m_uiView.getSize();
+  const sf::Vector2f bgSize = m_deleteBg.getSize();
+  sf::Vector2f pos = uiPos + sf::Vector2f{8.f, 8.f};
+  pos.x = std::clamp(pos.x, 6.f, viewSize.x - bgSize.x - 6.f);
+  pos.y = std::clamp(pos.y, 6.f, viewSize.y - bgSize.y - 6.f);
+  m_deleteBg.setPosition(pos);
+
+  if (m_deleteLabel)
+  {
+    const sf::FloatRect labelBounds = m_deleteLabel->getLocalBounds();
+    m_deleteLabel->setPosition({pos.x + (bgSize.x - labelBounds.size.x) * 0.5f - labelBounds.position.x,
+                                pos.y + 6.f});
+  }
+
+  const sf::Vector2f yesPos{pos.x + 12.f, pos.y + 26.f};
+  const sf::Vector2f noPos{pos.x + bgSize.x - 12.f - 50.f, pos.y + 26.f};
+  m_deleteYes = PanelButton(sf::Vector2f{50.f, 18.f}, yesPos);
+  m_deleteNo = PanelButton(sf::Vector2f{50.f, 18.f}, noPos);
+  m_deleteYes.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_deleteNo.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_deleteYes.setText(m_uiFont, "Yes", 7, sf::Color::Black);
+  m_deleteNo.setText(m_uiFont, "No", 7, sf::Color::Black);
+  m_deleteYes.setTextOffset({16.f, 5.f});
+  m_deleteNo.setTextOffset({18.f, 5.f});
 }
 
 // ------------------------------------------------------------
@@ -457,6 +634,8 @@ void BuilderScene::render(sf::RenderTarget &target)
     target.draw(*m_diamondSprite);
   target.draw(m_moneyText);
   target.draw(m_diamondText);
+  if (m_toastText && m_toastTimer > 0.f)
+    target.draw(*m_toastText);
 
   if (m_cropMenuVisible)
   {
@@ -469,5 +648,14 @@ void BuilderScene::render(sf::RenderTarget &target)
     {
       target.draw(t);
     }
+  }
+
+  if (m_deletePromptVisible)
+  {
+    target.draw(m_deleteBg);
+    if (m_deleteLabel)
+      target.draw(*m_deleteLabel);
+    m_deleteYes.draw(target);
+    m_deleteNo.draw(target);
   }
 }

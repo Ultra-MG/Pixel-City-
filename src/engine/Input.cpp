@@ -17,7 +17,10 @@ void Input::handleEvent(const sf::Event& e) {
 
   if (const auto* mb = e.getIf<sf::Event::MouseButtonPressed>()) {
     if (mb->button == sf::Mouse::Button::Left)
+    {
       m_leftPressed = true;
+      m_leftDown = true;
+    }
 
     if (mb->button == sf::Mouse::Button::Right) {
       m_rightPressed = true;
@@ -26,6 +29,9 @@ void Input::handleEvent(const sf::Event& e) {
   }
 
   if (const auto* mb = e.getIf<sf::Event::MouseButtonReleased>()) {
+    if (mb->button == sf::Mouse::Button::Left)
+      m_leftDown = false;
+
     if (mb->button == sf::Mouse::Button::Right)
       m_rightDown = false;
   }

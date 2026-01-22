@@ -11,6 +11,7 @@ public:
   bool leftPressed()  const { return m_leftPressed; }
   bool rightPressed() const { return m_rightPressed; }
 
+  bool leftDown() const { return m_leftDown; }
   bool rightDown() const { return m_rightDown; }
 
   float wheelDelta() const { return m_wheelDelta; }
@@ -25,6 +26,7 @@ public:
 private:
   bool m_leftPressed  = false;
   bool m_rightPressed = false;
+  bool m_leftDown     = false;
   bool m_rightDown    = false;
 
   float m_wheelDelta = 0.f;

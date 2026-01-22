@@ -23,6 +23,8 @@ public:
     return m_objects;
   }
   bool canPlace(const Placeable &obj) const;
+  bool hasRoadAdjacent(int x, int y, int w, int h) const;
+  bool removePlaceable(const Placeable *obj);
   void place(std::unique_ptr<Placeable> obj);
   Placeable* getPlaceableAt(int tx, int ty) const;
 

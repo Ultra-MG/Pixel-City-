@@ -1,4 +1,7 @@
 #include "world/City.hpp"
+#include "world/Building.hpp"
+#include "world/Infrastructure/Road.hpp"
+#include <algorithm>
 
 City::City(int w, int h)
     : m_w(w), m_h(h), m_tiles((size_t)w * (size_t)h, Tile::Grass) {}
@@ -53,7 +56,60 @@ bool City::canPlace(const Placeable &obj) const
   if (rectOverlapsAnyObject(obj.x, obj.y, obj.w, obj.h, &obj))
     return false;
 
+  if (const auto *b = dynamic_cast<const Building *>(&obj))
+  {
+    if (b->requiresRoadAccess())
+    {
+      if (!hasRoadAdjacent(obj.x, obj.y, obj.w, obj.h))
+        return false;
+    }
+  }
+
   return obj.canBePlaced(*this);
+}
+
+bool City::hasRoadAdjacent(int x, int y, int w, int h) const
+{
+  const int left = x - 1;
+  const int right = x + w;
+  const int top = y - 1;
+  const int bottom = y + h;
+
+  for (const auto &o : m_objects)
+  {
+    if (!dynamic_cast<Road *>(o.get()))
+      continue;
+
+    for (int ry = o->y; ry < o->y + o->h; ++ry)
+    {
+      for (int rx = o->x; rx < o->x + o->w; ++rx)
+      {
+        if (rx >= x && rx < x + w && (ry == top || ry == bottom))
+          return true;
+        if (ry >= y && ry < y + h && (rx == left || rx == right))
+          return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool City::removePlaceable(const Placeable *obj)
+{
+  if (!obj)
+    return false;
+  if (!obj->canBeDeleted())
+    return false;
+
+  auto it = std::find_if(m_objects.begin(), m_objects.end(),
+                         [obj](const std::unique_ptr<Placeable> &p)
+                         { return p.get() == obj; });
+  if (it == m_objects.end())
+    return false;
+  (*it)->onDeleted();
+  m_objects.erase(it);
+  return true;
 }
 
 

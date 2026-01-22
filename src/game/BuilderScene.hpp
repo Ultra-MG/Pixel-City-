@@ -21,6 +21,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "ui/PanelButton.hpp"
 
 struct CropType
 {
@@ -80,6 +81,18 @@ private:
   std::optional<sf::Texture> m_diamondTexture;
   std::optional<sf::Sprite> m_coinSprite;
   std::optional<sf::Sprite> m_diamondSprite;
+  std::optional<sf::Text> m_toastText;
+  float m_toastTimer = 0.f;
+
+  bool m_deletePromptVisible = false;
+  Placeable *m_deleteTarget = nullptr;
+  sf::RectangleShape m_deleteBg;
+  std::optional<sf::Text> m_deleteLabel;
+  PanelButton m_deleteYes;
+  PanelButton m_deleteNo;
+  float m_holdTime = 0.f;
+  Placeable *m_holdTarget = nullptr;
+  const float m_holdThreshold = 0.6f;
 
   SidePanel m_panel;
 
@@ -95,4 +108,6 @@ private:
   void positionCropMenu(const sf::Vector2f &uiPos);
   void updateCurrencyUI();
   void saveGame();
+  void showToast(const std::string &text, float seconds);
+  void showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target);
 };
