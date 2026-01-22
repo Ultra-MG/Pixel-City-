@@ -61,3 +61,12 @@ void City::place(std::unique_ptr<Placeable> obj)
 {
   m_objects.push_back(std::move(obj));
 }
+
+Placeable* City::getPlaceableAt(int tx, int ty) const {
+    for (const auto& o : m_objects) {
+        if (o->x <= tx && tx < o->x + o->w && o->y <= ty && ty < o->y + o->h) {
+            return o.get();
+        }
+    }
+    return nullptr;
+}

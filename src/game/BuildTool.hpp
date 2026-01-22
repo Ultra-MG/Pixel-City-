@@ -12,5 +12,6 @@ enum class BuildTool {
   PlaceLampPost,
   PlaceBench,
   PlaceWater,
-  PlaceBridge
+  PlaceBridge,
+  PlaceCropField
 };

@@ -12,7 +12,17 @@
 
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
+#include "world/Crop.hpp"
+#include <functional>
 #include <memory>
+#include <string>
+#include <vector>
+
+struct CropType {
+    std::string name;
+    std::function<Crop*()> create;
+    std::string iconPath;
+};
 
 class BuilderScene : public Scene
 {
@@ -46,6 +56,15 @@ private:
   std::unique_ptr<Placeable> m_ghost;
   bool m_canPlaceGhost = false;
 
+  // --- Crop Menu ---
+  std::vector<CropType> m_cropTypes;
+  std::vector<Button> m_cropButtons;
+  std::vector<sf::Text> m_cropLabels;
+  sf::RectangleShape m_cropMenuBg;
+  sf::Font m_uiFont;
+  Placeable* m_selectedCropField = nullptr;
+  bool m_cropMenuVisible = false;
+
   // --- UI ---
   sf::View m_uiView;
 
@@ -54,4 +73,5 @@ private:
   // --- Helpers ---
   sf::Vector2f windowMouseToInternal() const;
   void updateHoverTile();
+  void positionCropMenu(const sf::Vector2f &uiPos);
 };

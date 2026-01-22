@@ -21,3 +21,6 @@ lib_OLD/
 
 # editor
 .vscode/
+
+
+.cache/

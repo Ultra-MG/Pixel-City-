@@ -11,6 +11,7 @@
 #include "world/Infrastructure/Road.hpp"
 #include "world/Infrastructure/Water.hpp"
 #include "world/Infrastructure/Bridge.hpp"
+#include "world/Infrastructure/CropField.hpp"
 #include "world/Decorations/Fountain.hpp"
 #include "world/Decorations/Tree.hpp"
 #include "world/Decorations/Bench.hpp"
@@ -59,6 +60,10 @@ Game::Game()
   factory.registerTool(BuildTool::PlaceBridge,
                        [](int x, int y)
                        { return std::make_unique<Bridge>(x, y); });
+
+  factory.registerTool(BuildTool::PlaceCropField,
+                       [](int x, int y)
+                       { return std::make_unique<CropField>(x, y); });
 
   factory.registerTool(BuildTool::PlaceFountain,
                        [](int x, int y)

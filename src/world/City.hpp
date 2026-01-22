@@ -24,6 +24,7 @@ public:
   }
   bool canPlace(const Placeable &obj) const;
   void place(std::unique_ptr<Placeable> obj);
+  Placeable* getPlaceableAt(int tx, int ty) const;
 
 private:
   int m_w = 0;
