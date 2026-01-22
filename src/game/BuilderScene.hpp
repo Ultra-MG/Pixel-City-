@@ -9,6 +9,7 @@
 
 #include "game/BuildTool.hpp"
 #include "game/SidePanel.hpp"
+#include "game/Economy.hpp"
 
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
@@ -67,11 +68,20 @@ private:
 
   // --- UI ---
   sf::View m_uiView;
+  sf::Text m_moneyText;
+  sf::Text m_diamondText;
+  std::optional<sf::Texture> m_coinTexture;
+  std::optional<sf::Texture> m_diamondTexture;
+  std::optional<sf::Sprite> m_coinSprite;
+  std::optional<sf::Sprite> m_diamondSprite;
 
   SidePanel m_panel;
+
+  Wallet m_wallet{1000, 20};
 
   // --- Helpers ---
   sf::Vector2f windowMouseToInternal() const;
   void updateHoverTile();
   void positionCropMenu(const sf::Vector2f &uiPos);
+  void updateCurrencyUI();
 };

@@ -40,6 +40,8 @@ private:
     sf::RectangleShape m_bg;
     sf::Font m_font;
     PanelButton m_discardButton;
+    std::optional<sf::Texture> m_coinTexture;
+    std::optional<sf::Texture> m_diamondTexture;
 
     std::vector<PanelButton> m_buttons;
 };

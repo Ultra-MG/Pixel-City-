@@ -1,4 +1,7 @@
 #include "game/SidePanel.hpp"
+#include "game/Economy.hpp"
+#include <string>
+#include <stdexcept>
 
 SidePanel::SidePanel(float collapsedW, float expandedW, float height)
     : m_collapsedW(collapsedW), m_expandedW(expandedW), m_height(height)
@@ -11,6 +14,19 @@ SidePanel::SidePanel(float collapsedW, float expandedW, float height)
     {
         throw std::runtime_error("SidePanel: failed to load font");
     }
+
+    m_coinTexture.emplace();
+    m_diamondTexture.emplace();
+    if (!m_coinTexture->loadFromFile("assets/coin.png"))
+    {
+        throw std::runtime_error("SidePanel: failed to load assets/coin.png");
+    }
+    if (!m_diamondTexture->loadFromFile("assets/diamond.png"))
+    {
+        throw std::runtime_error("SidePanel: failed to load assets/diamond.png");
+    }
+    m_coinTexture->setSmooth(false);
+    m_diamondTexture->setSmooth(false);
     m_discardButton = PanelButton(sf::Vector2f{24.f, 24.f}, sf::Vector2f{expandedW - 34.f, 6.f});
     m_discardButton.setOutline(sf::Color(160, 80, 80), 1.f);
     m_discardButton.loadImage("assets/ui/discard.png");
@@ -130,6 +146,14 @@ void SidePanel::rebuildButtons()
         b.setImageOffset({4.f, 2.f});
         b.setText(m_font, entry.label, 7, sf::Color::Black);
         b.setTextOffset({28.f, 8.f});
+
+        const Cost cost = buildCost(entry.tool);
+        if (cost.amount > 0)
+        {
+            const sf::Texture *icon =
+                (cost.currency == Currency::Money) ? &(*m_coinTexture) : &(*m_diamondTexture);
+            b.setCost(m_font, std::to_string(cost.amount), icon);
+        }
 
         y += 30.f;
     }

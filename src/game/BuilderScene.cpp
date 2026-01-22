@@ -17,15 +17,19 @@
 #include "world/Decorations/Bench.hpp"
 #include "world/Decorations/LampPost.hpp"
 #include "game/BuildToolFactory.hpp"
+#include "game/Economy.hpp"
 #include <SFML/Window/Mouse.hpp>
 #include <stdexcept>
+#include <algorithm>
 
 BuilderScene::BuilderScene(sf::RenderWindow &window,
                            float internalW,
                            float internalH,
                            int tileSize)
     : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH),
-      m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH)
+      m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH),
+      m_moneyText(m_uiFont, "0", 10),
+      m_diamondText(m_uiFont, "0", 10)
 {
   m_camera.setZoomClamp(cfg::ZoomMin, cfg::ZoomMax);
 
@@ -40,6 +44,25 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   {
     throw std::runtime_error("BuilderScene: failed to load font");
   }
+
+  m_moneyText.setFillColor(sf::Color::White);
+  m_diamondText.setFillColor(sf::Color::White);
+
+  m_coinTexture.emplace();
+  m_diamondTexture.emplace();
+  if (!m_coinTexture->loadFromFile("assets/coin.png"))
+  {
+    throw std::runtime_error("BuilderScene: failed to load assets/coin.png");
+  }
+  if (!m_diamondTexture->loadFromFile("assets/diamond.png"))
+  {
+    throw std::runtime_error("BuilderScene: failed to load assets/diamond.png");
+  }
+  m_coinTexture->setSmooth(false);
+  m_diamondTexture->setSmooth(false);
+  m_coinSprite.emplace(*m_coinTexture);
+  m_diamondSprite.emplace(*m_diamondTexture);
+  updateCurrencyUI();
 
   m_cropMenuBg.setSize({170.f, 140.f});
   m_cropMenuBg.setFillColor(sf::Color(30, 30, 30, 220));
@@ -160,6 +183,53 @@ void BuilderScene::positionCropMenu(const sf::Vector2f &uiPos)
 
 // ------------------------------------------------------------
 
+void BuilderScene::updateCurrencyUI()
+{
+  const sf::Vector2f viewSize = m_uiView.getSize();
+  const sf::Vector2f padding{6.f, 6.f};
+
+  m_moneyText.setString(std::to_string(m_wallet.money()));
+  m_diamondText.setString(std::to_string(m_wallet.diamonds()));
+
+  const float iconSize = 12.f;
+  const float gap = 4.f;
+  const float groupGap = 10.f;
+
+  const sf::FloatRect moneyBounds = m_moneyText.getLocalBounds();
+  const sf::FloatRect diamondBounds = m_diamondText.getLocalBounds();
+  const float moneyWidth = moneyBounds.size.x;
+  const float diamondWidth = diamondBounds.size.x;
+
+  const float totalWidth =
+      iconSize + gap + moneyWidth +
+      groupGap +
+      iconSize + gap + diamondWidth;
+
+  const float startX = viewSize.x - padding.x - totalWidth;
+  const float y = padding.y;
+
+  const sf::Vector2u coinSize = m_coinTexture->getSize();
+  if (coinSize.x > 0 && coinSize.y > 0)
+  {
+    const float scale = iconSize / static_cast<float>(std::max(coinSize.x, coinSize.y));
+    m_coinSprite->setScale({scale, scale});
+  }
+  const sf::Vector2u diamondSize = m_diamondTexture->getSize();
+  if (diamondSize.x > 0 && diamondSize.y > 0)
+  {
+    const float scale = iconSize / static_cast<float>(std::max(diamondSize.x, diamondSize.y));
+    m_diamondSprite->setScale({scale, scale});
+  }
+
+  m_coinSprite->setPosition({startX, y + 2.f});
+  m_moneyText.setPosition({startX + iconSize + gap, y});
+  const float diamondStart = startX + iconSize + gap + moneyWidth + groupGap;
+  m_diamondSprite->setPosition({diamondStart, y + 2.f});
+  m_diamondText.setPosition({diamondStart + iconSize + gap, y});
+}
+
+// ------------------------------------------------------------
+
 void BuilderScene::update(float)
 {
 
@@ -267,6 +337,10 @@ void BuilderScene::update(float)
   // =========================
   if (click && m_ghost && m_canPlaceGhost)
   {
+    const Cost cost = buildCost(m_activeTool);
+    if (!m_wallet.spend(cost))
+      return;
+
     m_city.place(std::move(m_ghost));
     m_ghost = BuildToolFactory::instance()
                   .create(m_activeTool, m_hoverTx, m_hoverTy);
@@ -274,6 +348,8 @@ void BuilderScene::update(float)
     if (m_ghost)
       m_canPlaceGhost = m_city.canPlace(*m_ghost);
   }
+
+  updateCurrencyUI();
 }
 
 // ------------------------------------------------------------
@@ -299,6 +375,12 @@ void BuilderScene::render(sf::RenderTarget &target)
   target.setView(m_uiView);
   m_panel.render(target);
   m_panelButton.draw(target);
+  if (m_coinSprite)
+    target.draw(*m_coinSprite);
+  if (m_diamondSprite)
+    target.draw(*m_diamondSprite);
+  target.draw(m_moneyText);
+  target.draw(m_diamondText);
 
   if (m_cropMenuVisible) {
       target.draw(m_cropMenuBg);
