@@ -5,7 +5,8 @@
 #include "world/Tile.hpp"
 #include "world/Placeable.hpp"
 
-class City {
+class City
+{
 public:
   City(int w, int h);
 
@@ -14,24 +15,25 @@ public:
 
   Tile getTile(int x, int y) const;
   void setTile(int x, int y, Tile t);
+  bool isWater(int tx, int ty) const;
 
   // GENERIC OBJECT ACCESS
-  const std::vector<std::unique_ptr<Placeable>>& objects() const {
+  const std::vector<std::unique_ptr<Placeable>> &objects() const
+  {
     return m_objects;
   }
-
-  // PLACEMENT
-  bool canPlace(const Placeable& obj) const;
+  bool canPlace(const Placeable &obj) const;
   void place(std::unique_ptr<Placeable> obj);
 
 private:
   int m_w = 0;
   int m_h = 0;
-
   std::vector<Tile> m_tiles;
   std::vector<std::unique_ptr<Placeable>> m_objects;
 
   bool inBounds(int x, int y) const;
   bool rectInBounds(int x, int y, int w, int h) const;
-  bool rectOverlapsAnyObject(int x, int y, int w, int h) const;
+  bool rectOverlapsAnyObject(
+      int x, int y, int w, int h,
+      const Placeable *self) const;
 };

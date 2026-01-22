@@ -112,6 +112,7 @@ void SidePanel::rebuildButtons()
 
         return;
     }
+    y = 40.f;
 
     for (const auto &entry : buildCatalog())
     {

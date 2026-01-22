@@ -3,7 +3,7 @@
 #include <cstdint>
 
 enum class BuildingType : std::uint8_t {
-  House, TownHall, Farm
+  House, TownHall, Farm, Store
 };
 
 class Building : public Placeable {

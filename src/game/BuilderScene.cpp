@@ -1,10 +1,16 @@
-// src/game/BuilderScene.cpp  (FIXED)
-
 #include "game/BuilderScene.hpp"
 #include "core/Config.hpp"
-#include "world/House.hpp"
-#include "world/Road.hpp"
-#include "world/Fountain.hpp"
+#include "world/Buildings/House.hpp"
+#include "world/Buildings/Farm.hpp"
+#include "world/Buildings/Store.hpp"
+#include "world/Buildings/TownHall.hpp"
+#include "world/Infrastructure/Road.hpp"
+#include "world/Infrastructure/Water.hpp"
+#include "world/Infrastructure/Bridge.hpp"
+#include "world/Decorations/Fountain.hpp"
+#include "world/Decorations/Tree.hpp"
+#include "world/Decorations/Bench.hpp"
+#include "world/Decorations/LampPost.hpp"
 #include <iostream>
 #include "game/BuildToolFactory.hpp"
 #include <algorithm>
@@ -33,9 +39,17 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   m_panelButton.setImageScale({0.2f, 0.2f});
   m_panelButton.setImageOffset({2.f, 2.f});
 
-  House::loadTexture();
   Road::loadTexture();
+  Water::loadTexture();
+  Bridge::loadTexture();
+  House::loadTexture();
+  TownHall::loadTexture();
+  Farm::loadTexture();
+  Store::loadTexture();
+  Tree::loadTexture();
   Fountain::loadTexture();
+  Bench::loadTexture();
+  LampPost::loadTexture();
 }
 
 // ------------------------------------------------------------
