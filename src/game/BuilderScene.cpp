@@ -25,7 +25,9 @@
 BuilderScene::BuilderScene(sf::RenderWindow &window,
                            float internalW,
                            float internalH,
-                           int tileSize)
+                           int tileSize,
+                           const std::string &cityName,
+                           const std::optional<GameState> &state)
     : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH),
       m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH),
       m_moneyText(m_uiFont, "0", 10),
@@ -39,6 +41,16 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
 
   m_uiView.setSize({internalW, internalH});
   m_uiView.setCenter({internalW * 0.5f, internalH * 0.5f});
+
+  m_cityName = cityName;
+  if (state)
+  {
+    m_saveEnabled = false;
+    SaveSystem::applyState(*state, m_city, m_wallet);
+    if (!state->cityName.empty())
+      m_cityName = state->cityName;
+    m_saveEnabled = true;
+  }
 
   if (!m_uiFont.openFromFile("assets/fonts/pixelFont.ttf"))
   {
@@ -110,6 +122,8 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
       m_cropLabels.emplace_back(m_uiFont, m_cropTypes[i].name, 10);
       m_cropLabels.back().setFillColor(sf::Color::White);
   }
+
+  saveGame();
 }
 
 // ------------------------------------------------------------
@@ -300,6 +314,7 @@ void BuilderScene::update(float)
                   static_cast<CropField*>(m_selectedCropField)->plantCrop(m_cropTypes[i].create());
                   m_cropMenuVisible = false;
                   m_selectedCropField = nullptr;
+                  saveGame();
               }
               clickedOnButton = true;
               break;
@@ -342,6 +357,7 @@ void BuilderScene::update(float)
       return;
 
     m_city.place(std::move(m_ghost));
+    saveGame();
     m_ghost = BuildToolFactory::instance()
                   .create(m_activeTool, m_hoverTx, m_hoverTy);
 
@@ -350,6 +366,19 @@ void BuilderScene::update(float)
   }
 
   updateCurrencyUI();
+}
+
+// ------------------------------------------------------------
+
+void BuilderScene::saveGame()
+{
+  if (!m_saveEnabled)
+    return;
+  if (m_cityName.empty())
+    return;
+
+  const GameState state = SaveSystem::buildState(m_cityName, m_city, m_wallet);
+  SaveSystem::saveState(state);
 }
 
 // ------------------------------------------------------------

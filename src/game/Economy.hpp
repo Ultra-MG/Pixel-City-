@@ -23,6 +23,7 @@ public:
 
     bool canAfford(const Cost &cost) const;
     bool spend(const Cost &cost);
+    void set(int money, int diamonds);
 
 private:
     int m_money = 0;

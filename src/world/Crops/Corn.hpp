@@ -9,6 +9,7 @@ public:
     void render(sf::RenderTarget& target, int x, int y) const override;
     int growthTime() const override { return 15; }
     int value() const override { return 30; }
+    const char* typeName() const override { return "corn"; }
 
 private:
     static sf::Texture s_texture;

@@ -10,12 +10,14 @@
 #include "game/BuildTool.hpp"
 #include "game/SidePanel.hpp"
 #include "game/Economy.hpp"
+#include "game/SaveSystem.hpp"
 
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
 #include "world/Crop.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -31,7 +33,9 @@ public:
   BuilderScene(sf::RenderWindow &window,
                float internalW,
                float internalH,
-               int tileSize);
+               int tileSize,
+               const std::string &cityName,
+               const std::optional<GameState> &state = std::nullopt);
 
   void beginFrame() override;
   void handleEvent(const sf::Event &e) override;
@@ -78,10 +82,13 @@ private:
   SidePanel m_panel;
 
   Wallet m_wallet{1000, 20};
+  std::string m_cityName;
+  bool m_saveEnabled = true;
 
   // --- Helpers ---
   sf::Vector2f windowMouseToInternal() const;
   void updateHoverTile();
   void positionCropMenu(const sf::Vector2f &uiPos);
   void updateCurrencyUI();
+  void saveGame();
 };

@@ -37,6 +37,12 @@ bool Wallet::spend(const Cost &cost)
     return true;
 }
 
+void Wallet::set(int money, int diamonds)
+{
+    m_money = money;
+    m_diamonds = diamonds;
+}
+
 Cost buildCost(BuildTool tool)
 {
     switch (tool)

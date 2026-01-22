@@ -22,6 +22,7 @@ public:
 
     void plantCrop(Crop* crop);
     void harvest();
+    const Crop* crop() const { return m_crop; }
 
 private:
     static sf::Texture s_texture;

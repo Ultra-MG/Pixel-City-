@@ -1,6 +1,7 @@
 #include "core/Game.hpp"
 #include "core/Config.hpp"
 #include "game/BuilderScene.hpp"
+#include "game/screens/SplashScreen.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/System/Clock.hpp>
 #include "game/BuildToolFactory.hpp"
@@ -26,8 +27,9 @@ Game::Game()
 {
   m_window.setVerticalSyncEnabled(true);
 
-  m_scenes.set(std::make_unique<BuilderScene>(
+  m_scenes.set(std::make_unique<SplashScreen>(
       m_window,
+      m_scenes,
       static_cast<float>(cfg::InternalW),
       static_cast<float>(cfg::InternalH),
       cfg::TileSize));
