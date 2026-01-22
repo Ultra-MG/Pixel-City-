@@ -1,22 +1,13 @@
 #pragma once
 #include "game/BuildTool.hpp"
-
-enum class Currency
-{
-    Money,
-    Diamonds
-};
-
-struct Cost
-{
-    Currency currency = Currency::Money;
-    int amount = 0;
-};
-
+#include "game/Cost.hpp"
 class Wallet
 {
 public:
     Wallet(int money, int diamonds);
+
+    void addMoney(int v) { m_money += v; }
+    void addDiamonds(int v) { m_diamonds += v; }
 
     int money() const { return m_money; }
     int diamonds() const { return m_diamonds; }

@@ -6,19 +6,23 @@
 #include "world/City.hpp"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
-
+#include "game/Cost.hpp"
 class House : public Building {
 public:
     House(int tx, int ty);
 
     static void loadTexture();
-
+    Cost cost() const override { return {Currency::Money, 30}; }
     BuildingType type() const override;
     bool requiresRoadAccess() const override;
     bool canBePlaced(const City&) const override;
 
     void render(sf::RenderTarget& target) const override;
     void renderGhost(sf::RenderTarget& target, bool valid) const override;
+    BuildTool buildTool() const override
+    {
+        return BuildTool::PlaceHouse;
+    }
 
 private:
     static sf::Texture s_texture;

@@ -1,6 +1,5 @@
 #include "world/Buildings/Farm.hpp"
 #include <SFML/Graphics/Sprite.hpp>
-#include <iostream>
 
 sf::Texture Farm::s_texture;
 
@@ -10,6 +9,7 @@ Farm::Farm(int tx, int ty)
     y = ty;
     w = 3;
     h = 3;
+    m_storedMoney = 0;
 }
 
 void Farm::loadTexture()
@@ -27,12 +27,60 @@ bool Farm::requiresRoadAccess() const
     return false;
 }
 
-bool Farm::canBePlaced(const City &) const
+bool Farm::canBePlaced(const City&) const
 {
     return true;
 }
 
-void Farm::render(sf::RenderTarget &target) const
+
+int Farm::moneyPerMinute() const
+{
+    return 5;
+}
+
+int Farm::storedMoney() const
+{
+    return m_storedMoney;
+}
+
+void Farm::setStoredMoney(int v)
+{
+    m_storedMoney = v;
+}
+
+void Farm::applyOffline(std::int64_t seconds)
+{
+    MoneyProducer::applyOffline(seconds);
+}
+
+void Farm::tick(std::int64_t seconds, EconomySystem& eco)
+{
+    const int produced =
+        static_cast<int>((seconds * moneyPerMinute()) / 60);
+
+    if (produced > 0)
+        eco.addMoney(produced);
+}
+
+
+void Farm::saveTo(PlacedObject& out) const
+{
+    Building::saveTo(out);
+    out.data["money"] = std::to_string(m_storedMoney);
+}
+
+void Farm::loadFrom(const PlacedObject& in)
+{
+    Building::loadFrom(in);
+
+    if (auto it = in.data.find("money"); it != in.data.end())
+        m_storedMoney = std::stoi(it->second);
+    else
+        m_storedMoney = 0;
+}
+
+
+void Farm::render(sf::RenderTarget& target) const
 {
     sf::Sprite s(s_texture);
 
@@ -45,10 +93,9 @@ void Farm::render(sf::RenderTarget &target) const
     target.draw(s);
 }
 
-void Farm::renderGhost(sf::RenderTarget &target, bool valid) const
+void Farm::renderGhost(sf::RenderTarget& target, bool valid) const
 {
     sf::Sprite s(s_texture);
-    std::cout << "Rendering ghost farm at (" << x << "," << y << ")\n";
 
     s.setPosition({float(x * cfg::TileSize),
                    float(y * cfg::TileSize)});

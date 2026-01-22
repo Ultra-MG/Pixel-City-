@@ -1,11 +1,23 @@
+// world/Crop.hpp  (MODIFIED)
 #pragma once
 #include <SFML/Graphics/RenderTarget.hpp>
+#include "game/Cost.hpp"
+#include <unordered_map>
+#include <string>
 
-class Crop {
+class Crop
+{
 public:
     virtual ~Crop() = default;
-    virtual void render(sf::RenderTarget& target, int x, int y) const = 0;
+
+    virtual Cost cost() const = 0;
+    virtual void render(sf::RenderTarget &target, int x, int y) const = 0;
     virtual int growthTime() const = 0;
     virtual int value() const = 0;
-    virtual const char* typeName() const = 0;
+    virtual const char *typeName() const = 0;
+
+    virtual void saveTo(std::unordered_map<std::string, std::string>& out) const
+    {
+        out["crop_type"] = typeName();
+    }
 };

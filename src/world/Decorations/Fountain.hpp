@@ -4,6 +4,7 @@
 #include "core/Config.hpp"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include "game/Cost.hpp"
 
 class Fountain : public Decoration {
 public:
@@ -11,12 +12,16 @@ public:
 
     static void loadTexture();
 
-    int cost() const override { return 5; }
+    Cost cost() const override { return {Currency::Diamonds, 3}; }
 
     bool canBePlaced(const City& city) const override;
 
     void render(sf::RenderTarget& target) const override;
     void renderGhost(sf::RenderTarget& target, bool valid) const override;
+    BuildTool buildTool() const override
+    {
+        return BuildTool::PlaceFountain;
+    }
 
 private:
     static sf::Texture s_texture;

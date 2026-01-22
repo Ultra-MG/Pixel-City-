@@ -1,5 +1,6 @@
 #include "game/SidePanel.hpp"
 #include "game/Economy.hpp"
+#include "game/BuildToolFactory.hpp"
 #include <string>
 #include <stdexcept>
 
@@ -147,11 +148,19 @@ void SidePanel::rebuildButtons()
         b.setText(m_font, entry.label, 7, sf::Color::Black);
         b.setTextOffset({28.f, 8.f});
 
-        const Cost cost = buildCost(entry.tool);
+        auto placeable =
+            BuildToolFactory::instance().create(entry.tool, 0, 0);
+        if (!placeable)
+            return;
+
+        const Cost cost = placeable->cost();
         if (cost.amount > 0)
         {
             const sf::Texture *icon =
-                (cost.currency == Currency::Money) ? &(*m_coinTexture) : &(*m_diamondTexture);
+                (cost.currency == Currency::Money)
+                    ? &(*m_coinTexture)
+                    : &(*m_diamondTexture);
+
             b.setCost(m_font, std::to_string(cost.amount), icon);
         }
 

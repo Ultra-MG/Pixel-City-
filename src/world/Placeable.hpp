@@ -1,18 +1,29 @@
 #pragma once
 #include "world/WorldObject.hpp"
+#include "game/BuildTool.hpp"
+#include "game/SaveTypes.hpp"
+#include "game/Cost.hpp"
 
 class City;
 
 class Placeable : public WorldObject
 {
 public:
-  int x = 0;
-  int y = 0;
-  int w = 1;
-  int h = 1;
 
-  int cost = 0;
+  int level = 1;
 
+  virtual Cost cost() const = 0;
+  virtual BuildTool buildTool() const = 0;
+  void saveTo(PlacedObject &out) const
+  {
+    WorldObject::saveTo(out);
+    out.tool = buildTool();
+  }
+
+  void loadFrom(const PlacedObject &in) override
+  {
+    WorldObject::loadFrom(in);
+  }
   virtual bool canBePlaced(const City &) const = 0;
   virtual void renderGhost(sf::RenderTarget &, bool valid) const = 0;
   virtual bool canOverlap(const Placeable &other) const { return false; }

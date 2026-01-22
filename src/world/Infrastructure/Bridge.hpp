@@ -1,4 +1,3 @@
-// world/Infrastructure/Bridge.hpp
 #pragma once
 
 #include "world/Infrastructure.hpp"
@@ -7,6 +6,7 @@
 #include "world/Infrastructure/Water.hpp"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include "game/Cost.hpp"
 
 class Bridge : public Infrastructure
 {
@@ -15,7 +15,7 @@ public:
 
     static void loadTexture();
 
-    int cost() const override { return 2; }
+    Cost cost() const override { return {Currency::Money, 5}; }
     bool canBePlaced(const City &city) const override;
 
     void render(sf::RenderTarget &target) const override;
@@ -23,6 +23,10 @@ public:
     bool canOverlap(const Placeable &other) const override
     {
         return dynamic_cast<const Water *>(&other) != nullptr;
+    }
+    BuildTool buildTool() const override
+    {
+        return BuildTool::PlaceBridge;
     }
 
 private:

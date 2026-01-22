@@ -15,16 +15,18 @@
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
 #include "world/Crop.hpp"
+#include "game/EconomySystem.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
-struct CropType {
-    std::string name;
-    std::function<Crop*()> create;
-    std::string iconPath;
+struct CropType
+{
+  std::string name;
+  std::function<Crop *()> create;
+  std::string iconPath;
 };
 
 class BuilderScene : public Scene
@@ -67,7 +69,7 @@ private:
   std::vector<sf::Text> m_cropLabels;
   sf::RectangleShape m_cropMenuBg;
   sf::Font m_uiFont;
-  Placeable* m_selectedCropField = nullptr;
+  Placeable *m_selectedCropField = nullptr;
   bool m_cropMenuVisible = false;
 
   // --- UI ---
@@ -84,6 +86,8 @@ private:
   Wallet m_wallet{1000, 20};
   std::string m_cityName;
   bool m_saveEnabled = true;
+  std::int64_t m_timeAccMs = 0;
+  EconomySystem m_economy;
 
   // --- Helpers ---
   sf::Vector2f windowMouseToInternal() const;

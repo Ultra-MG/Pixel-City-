@@ -31,7 +31,8 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
     : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH),
       m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH),
       m_moneyText(m_uiFont, "0", 10),
-      m_diamondText(m_uiFont, "0", 10)
+      m_diamondText(m_uiFont, "0", 10),
+      m_economy(m_wallet)
 {
   m_camera.setZoomClamp(cfg::ZoomMin, cfg::ZoomMax);
 
@@ -49,6 +50,25 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
     SaveSystem::applyState(*state, m_city, m_wallet);
     if (!state->cityName.empty())
       m_cityName = state->cityName;
+
+    const std::int64_t now = std::time(nullptr);
+    const std::int64_t delta = now - state->lastSaveTimestamp;
+
+    if (delta > 0)
+    {
+      for (auto &o : m_city.objects())
+      {
+        if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
+        {
+          const int before = p->storedMoney();
+          p->applyOffline(delta);
+          const int gained = p->storedMoney() - before;
+
+          if (gained > 0)
+            m_wallet.addMoney(gained);
+        }
+      }
+    }
     m_saveEnabled = true;
   }
 
@@ -107,20 +127,25 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   Potato::loadTexture();
 
   // Initialize crop types
-  m_cropTypes.emplace_back(CropType{"Wheat", [](){ return new Wheat(); }, "assets/crops/wheat.png"});
-  m_cropTypes.emplace_back(CropType{"Corn", [](){ return new Corn(); }, "assets/crops/corn.png"});
-  m_cropTypes.emplace_back(CropType{"Carrot", [](){ return new Carrot(); }, "assets/crops/carrot.png"});
-  m_cropTypes.emplace_back(CropType{"Potato", [](){ return new Potato(); }, "assets/crops/potato.png"});
+  m_cropTypes.emplace_back(CropType{"Wheat", []()
+                                    { return new Wheat(); }, "assets/crops/wheat.png"});
+  m_cropTypes.emplace_back(CropType{"Corn", []()
+                                    { return new Corn(); }, "assets/crops/corn.png"});
+  m_cropTypes.emplace_back(CropType{"Carrot", []()
+                                    { return new Carrot(); }, "assets/crops/carrot.png"});
+  m_cropTypes.emplace_back(CropType{"Potato", []()
+                                    { return new Potato(); }, "assets/crops/potato.png"});
 
   // Initialize crop buttons
   const sf::Vector2f buttonSize{40.f, 40.f};
-  for (size_t i = 0; i < m_cropTypes.size(); ++i) {
-      m_cropButtons.emplace_back(Button(buttonSize, {0.f, 0.f}));
-      m_cropButtons.back().loadImage(m_cropTypes[i].iconPath);
-      m_cropButtons.back().setImageSize({32.f, 32.f});
-      m_cropButtons.back().setImageOffset({4.f, 4.f});
-      m_cropLabels.emplace_back(m_uiFont, m_cropTypes[i].name, 10);
-      m_cropLabels.back().setFillColor(sf::Color::White);
+  for (size_t i = 0; i < m_cropTypes.size(); ++i)
+  {
+    m_cropButtons.emplace_back(Button(buttonSize, {0.f, 0.f}));
+    m_cropButtons.back().loadImage(m_cropTypes[i].iconPath);
+    m_cropButtons.back().setImageSize({32.f, 32.f});
+    m_cropButtons.back().setImageOffset({4.f, 4.f});
+    m_cropLabels.emplace_back(m_uiFont, m_cropTypes[i].name, 10);
+    m_cropLabels.back().setFillColor(sf::Color::White);
   }
 
   saveGame();
@@ -244,10 +269,24 @@ void BuilderScene::updateCurrencyUI()
 
 // ------------------------------------------------------------
 
-void BuilderScene::update(float)
+void BuilderScene::update(float dt)
 {
 
   updateHoverTile();
+
+  m_timeAccMs += static_cast<std::int64_t>(dt * 1000);
+
+  if (m_timeAccMs >= 1000)
+  {
+    const std::int64_t seconds = m_timeAccMs / 1000;
+    m_timeAccMs %= 1000;
+
+    for (auto &o : m_city.objects())
+    {
+      if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
+        p->tick(seconds, m_economy);
+    }
+  }
 
   if (m_panel.isOpen())
   {
@@ -306,35 +345,42 @@ void BuilderScene::update(float)
   // =========================
   // Crop menu handling
   // =========================
-  if (m_cropMenuVisible && click) {
-      bool clickedOnButton = false;
-      for (size_t i = 0; i < m_cropButtons.size(); ++i) {
-          if (m_cropButtons[i].contains(mouseUI)) {
-              if (m_selectedCropField) {
-                  static_cast<CropField*>(m_selectedCropField)->plantCrop(m_cropTypes[i].create());
-                  m_cropMenuVisible = false;
-                  m_selectedCropField = nullptr;
-                  saveGame();
-              }
-              clickedOnButton = true;
-              break;
-          }
-      }
-      if (!clickedOnButton) {
+  if (m_cropMenuVisible && click)
+  {
+    bool clickedOnButton = false;
+    for (size_t i = 0; i < m_cropButtons.size(); ++i)
+    {
+      if (m_cropButtons[i].contains(mouseUI))
+      {
+        if (m_selectedCropField)
+        {
+          static_cast<CropField *>(m_selectedCropField)->plantCrop(m_cropTypes[i].create());
           m_cropMenuVisible = false;
           m_selectedCropField = nullptr;
+          saveGame();
+        }
+        clickedOnButton = true;
+        break;
       }
-      return;
+    }
+    if (!clickedOnButton)
+    {
+      m_cropMenuVisible = false;
+      m_selectedCropField = nullptr;
+    }
+    return;
   }
 
-  if (click && m_activeTool == BuildTool::None && !m_cropMenuVisible) {
-      auto p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
-      if (p && dynamic_cast<CropField*>(p)) {
-          m_selectedCropField = p;
-          m_cropMenuVisible = true;
-          positionCropMenu(mouseUI);
-          return;
-      }
+  if (click && m_activeTool == BuildTool::None && !m_cropMenuVisible)
+  {
+    auto p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
+    if (p && dynamic_cast<CropField *>(p))
+    {
+      m_selectedCropField = p;
+      m_cropMenuVisible = true;
+      positionCropMenu(mouseUI);
+      return;
+    }
   }
 
   // =========================
@@ -352,12 +398,13 @@ void BuilderScene::update(float)
   // =========================
   if (click && m_ghost && m_canPlaceGhost)
   {
-    const Cost cost = buildCost(m_activeTool);
+    const Cost cost = m_ghost->cost();
     if (!m_wallet.spend(cost))
       return;
 
     m_city.place(std::move(m_ghost));
     saveGame();
+
     m_ghost = BuildToolFactory::instance()
                   .create(m_activeTool, m_hoverTx, m_hoverTy);
 
@@ -411,13 +458,16 @@ void BuilderScene::render(sf::RenderTarget &target)
   target.draw(m_moneyText);
   target.draw(m_diamondText);
 
-  if (m_cropMenuVisible) {
-      target.draw(m_cropMenuBg);
-      for (auto& b : m_cropButtons) {
-          b.draw(target);
-      }
-      for (auto& t : m_cropLabels) {
-          target.draw(t);
-      }
+  if (m_cropMenuVisible)
+  {
+    target.draw(m_cropMenuBg);
+    for (auto &b : m_cropButtons)
+    {
+      b.draw(target);
+    }
+    for (auto &t : m_cropLabels)
+    {
+      target.draw(t);
+    }
   }
 }
