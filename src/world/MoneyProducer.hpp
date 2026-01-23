@@ -11,14 +11,23 @@ public:
 
     virtual int storedMoney() const = 0;
     virtual void setStoredMoney(int v) = 0;
+    virtual int maxStorage() const { return 0; }
+
+    virtual int baseStorage() const { return 0; }
+    virtual int storagePerLevel() const { return 0; }
 
     virtual void tick(std::int64_t seconds)
     {
-        const int produced =
-            static_cast<int>((seconds * moneyPerMinute()) / 60);
+        m_fractional += seconds * moneyPerMinute();
+
+        const int produced = m_fractional / 60;
+        m_fractional %= 60;
 
         if (produced > 0)
-            setStoredMoney(storedMoney() + produced);
+        {
+            const int capped = std::min(storedMoney() + produced, maxStorage());
+            setStoredMoney(capped);
+        }
     }
 
     int collect()
@@ -32,4 +41,7 @@ public:
     {
         tick(seconds);
     }
+
+private:
+    std::int64_t m_fractional = 0;
 };

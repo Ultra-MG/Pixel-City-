@@ -37,8 +37,18 @@ public:
     void saveTo(PlacedObject &out) const override;
     void loadFrom(const PlacedObject &in) override;
 
-    void render(sf::RenderTarget &target, const sf::Font& font) const override;
+    void render(sf::RenderTarget &target, const sf::Font &font) const override;
     void renderGhost(sf::RenderTarget &target, bool valid) const override;
+    void upgrade(const City &city) override;
+    int maxLevel() const override { return 5; }
+    bool upgradable() const override { return true; }
+    Cost upgradeCost() const override;
+    int effectiveMaxLevel(const City &city) const override;
+    int baseStorage() const override { return 50; }
+    int storagePerLevel() const override { return 25; }
+    int maxStorage() const override {
+        return baseStorage() + storagePerLevel() * m_level;
+    }
 
 private:
     static sf::Texture s_texture;

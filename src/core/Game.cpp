@@ -39,10 +39,6 @@ Game::Game()
                        [](int x, int y)
                        { return std::make_unique<House>(x, y); });
 
-  factory.registerTool(BuildTool::PlaceTownHall,
-                       [](int x, int y)
-                       { return std::make_unique<TownHall>(x, y); });
-
   factory.registerTool(BuildTool::PlaceStore,
                        [](int x, int y)
                        { return std::make_unique<Store>(x, y); });
@@ -66,6 +62,10 @@ Game::Game()
   factory.registerTool(BuildTool::PlaceCropField,
                        [](int x, int y)
                        { return std::make_unique<CropField>(x, y); });
+
+  factory.registerTool(BuildTool::PlaceTownHall,
+                       [](int x, int y)
+                       { return std::make_unique<TownHall>(x, y); });
 
   factory.registerTool(BuildTool::PlaceFountain,
                        [](int x, int y)

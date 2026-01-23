@@ -27,7 +27,6 @@ inline const std::vector<BuildEntry> &buildCatalog()
       {BuildCategory::Infrastructure, BuildTool::PlaceCropField, "Crop Field", "assets/infrastructure/cropfield.png"},
       {BuildCategory::Building, BuildTool::PlaceHouse, "House", "assets/house.png"},
       {BuildCategory::Building, BuildTool::PlaceStore, "Store", "assets/store.png"},
-      {BuildCategory::Building, BuildTool::PlaceTownHall, "Town Hall", "assets/townhall.png"},
       {BuildCategory::Building, BuildTool::PlaceFarm, "Farm", "assets/farm.png"},
       {BuildCategory::Decorations, BuildTool::PlaceFountain, "Fountain", "assets/Decorations/fountain.png"},
       {BuildCategory::Decorations, BuildTool::PlaceTree, "Tree", "assets/decorations/tree.png"},

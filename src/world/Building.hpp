@@ -10,5 +10,4 @@ class Building : public Placeable {
 public:
   virtual BuildingType type() const = 0;
   virtual bool requiresRoadAccess() const { return false; }
-  int level = 1;
 };

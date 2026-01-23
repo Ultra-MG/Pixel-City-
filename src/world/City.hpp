@@ -5,14 +5,17 @@
 #include "world/Tile.hpp"
 #include "world/Placeable.hpp"
 
+class TownHall;
+class WorldObject;
 class City
 {
 public:
   City(int w, int h);
 
+  TownHall *townHall() const;
+  int townHallLevel() const;
   int w() const { return m_w; }
   int h() const { return m_h; }
-
   Tile getTile(int x, int y) const;
   void setTile(int x, int y, Tile t);
   bool isWater(int tx, int ty) const;
@@ -26,7 +29,7 @@ public:
   bool hasRoadAdjacent(int x, int y, int w, int h) const;
   bool removePlaceable(const Placeable *obj);
   void place(std::unique_ptr<Placeable> obj);
-  Placeable* getPlaceableAt(int tx, int ty) const;
+  Placeable *getPlaceableAt(int tx, int ty) const;
 
 private:
   int m_w = 0;

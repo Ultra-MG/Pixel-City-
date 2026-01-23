@@ -15,6 +15,21 @@ public:
     bool canAfford(const Cost &cost) const;
     bool spend(const Cost &cost);
     void set(int money, int diamonds);
+    void add(const Cost &cost)
+    {
+        if (cost.amount <= 0)
+            return;
+
+        switch (cost.currency)
+        {
+        case Currency::Money:
+            addMoney(cost.amount);
+            break;
+        case Currency::Diamonds:
+            addDiamonds(cost.amount);
+            break;
+        }
+    }
 
 private:
     int m_money = 0;

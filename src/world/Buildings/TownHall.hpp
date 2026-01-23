@@ -9,7 +9,8 @@
 #include <SFML/Graphics/Font.hpp>
 #include "game/Cost.hpp"
 
-class TownHall : public Building, public MoneyProducer {
+class TownHall : public Building, public MoneyProducer
+{
 public:
     TownHall(int tx, int ty);
 
@@ -18,7 +19,7 @@ public:
     Cost cost() const override { return {Currency::Money, 100}; }
     BuildingType type() const override;
     bool requiresRoadAccess() const override;
-    bool canBePlaced(const City&) const override;
+    bool canBePlaced(const City &) const override;
 
     BuildTool buildTool() const override
     {
@@ -31,17 +32,33 @@ public:
     void setStoredMoney(int v) override;
     void applyOffline(std::int64_t seconds) override;
     void tick(std::int64_t seconds) override;
-    int collectMoney();
+    bool canBeDeleted() const override { return false; }
 
     // Save
-    void saveTo(PlacedObject& out) const override;
-    void loadFrom(const PlacedObject& in) override;
+    void saveTo(PlacedObject &out) const override;
+    void loadFrom(const PlacedObject &in) override;
 
-    void render(sf::RenderTarget& target,const sf::Font& font) const override;
-    void renderGhost(sf::RenderTarget& target, bool valid) const override;
+    void render(sf::RenderTarget &target, const sf::Font &font) const override;
+
+    bool canUpgrade(const City &city) const override
+    {
+        return m_level < maxLevel();
+    }
+
+    int maxLevel() const override { return 5; }
+
+    Cost upgradeCost() const override;
+    void upgrade(const City &city) override;
+    bool upgradable() const override { return true; }
+    void renderGhost(sf::RenderTarget &, bool) const override {}
+    int baseStorage() const override { return 500; }
+    int storagePerLevel() const override { return 500; }
+    int maxStorage() const override {
+        return baseStorage() + storagePerLevel() * m_level;
+    }
+    
 
 private:
     static sf::Texture s_texture;
-
     int m_storedMoney = 0;
 };

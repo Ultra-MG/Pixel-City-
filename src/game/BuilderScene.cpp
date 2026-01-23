@@ -29,7 +29,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
                            int tileSize,
                            const std::string &cityName,
                            const std::optional<GameState> &state)
-    : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
+    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
 {
 
   restoreState(state);
@@ -76,7 +76,6 @@ void BuilderScene::initCurrencyUi()
   m_toastText.setFillColor(sf::Color(255, 230, 180));
 }
 
-
 void BuilderScene::initPanelButton()
 {
   m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
@@ -108,6 +107,12 @@ void BuilderScene::restoreState(const std::optional<GameState> &state)
       }
     }
     m_saveEnabled = true;
+  }
+  else
+  {
+    m_city.place(std::make_unique<TownHall>(
+        cfg::CityW / 2 - 2,
+        cfg::CityH / 2 - 2));
   }
 }
 
@@ -284,6 +289,46 @@ void BuilderScene::update(float dt)
 {
 
   updateHoverTile();
+  const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
+  const sf::Vector2f mouseUI =
+      m_window.mapPixelToCoords(mp, m_uiView);
+
+  const bool leftClick = m_input.leftPressed();
+  const bool rightClick = m_input.rightPressed();
+  const bool leftDown = m_input.leftDown();
+
+  if (m_upgradePromptVisible)
+  {
+    if (leftClick)
+    {
+      if (m_upgradeYes.contains(mouseUI))
+      {
+        const Cost cost = m_upgradeTarget->upgradeCost();
+        if (m_wallet.spend(cost))
+        {
+          m_upgradeTarget->upgrade(m_city);
+          updateCurrencyUI();
+          saveGame();
+          showToast("Upgraded!", 1.2f);
+        }
+        else
+        {
+          showToast("Not enough money", 1.2f);
+        }
+
+        m_upgradePromptVisible = false;
+        m_upgradeTarget = nullptr;
+        return;
+      }
+
+      if (m_upgradeNo.contains(mouseUI))
+      {
+        m_upgradePromptVisible = false;
+        m_upgradeTarget = nullptr;
+        return;
+      }
+    }
+  }
 
   const float wheel = m_input.wheelDelta();
   if (wheel != 0.f)
@@ -336,38 +381,40 @@ void BuilderScene::update(float dt)
     m_panelButton.setImageOffset({0.f, 0.f});
   }
 
-  const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
-  const sf::Vector2f mouseUI =
-      m_window.mapPixelToCoords(mp, m_uiView);
-
-  const bool click = m_input.leftPressed();
-  const bool leftDown = m_input.leftDown();
-
   if (m_deletePromptVisible)
   {
-    if (click)
+    if (leftClick)
     {
       if (m_deleteYes.contains(mouseUI))
       {
-        if (m_city.removePlaceable(m_deleteTarget))
-          saveGame();
+        if (m_deleteTarget)
+        {
+          if (m_deleteMode == DeleteMode::Sell)
+          {
+            const Cost refund = m_deleteTarget->sellValue();
+            m_wallet.add(refund);
+            updateCurrencyUI();
+          }
+
+          if (m_city.removePlaceable(m_deleteTarget))
+            saveGame();
+        }
+
         m_deletePromptVisible = false;
         m_deleteTarget = nullptr;
         return;
       }
-      if (m_deleteNo.contains(mouseUI))
-      {
-        m_deletePromptVisible = false;
-        m_deleteTarget = nullptr;
-        return;
-      }
+      return;
+    }
+    if (m_deleteNo.contains(mouseUI))
+    {
       m_deletePromptVisible = false;
       m_deleteTarget = nullptr;
       return;
     }
   }
 
-  if (click)
+  if (leftClick)
   {
 
     if (m_panelButton.contains(mouseUI))
@@ -407,7 +454,7 @@ void BuilderScene::update(float dt)
   // =========================
   // Crop menu handling
   // =========================
-  if (m_cropMenuVisible && click)
+  if (m_cropMenuVisible && leftClick)
   {
     bool clickedOnButton = false;
     for (size_t i = 0; i < m_cropButtons.size(); ++i)
@@ -433,11 +480,35 @@ void BuilderScene::update(float dt)
     return;
   }
 
-  if (click && m_activeTool == BuildTool::None && !m_cropMenuVisible)
+  if ((leftClick || rightClick) &&
+      m_activeTool == BuildTool::None &&
+      !m_cropMenuVisible &&
+      !m_deletePromptVisible)
   {
     auto *p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
+    if (!p)
+      return;
 
-    if (p)
+    // =========================
+    // RIGHT CLICK → UPGRADE
+    // =========================
+    if (rightClick)
+    {
+        if (p->canUpgrade(m_city))
+        {
+            showUpgradePrompt(mouseUI, p);
+        }
+        else if (p->maxLevel() > 1)
+        {
+            showToast("Max level reached", 1.2f);
+        }
+        return;
+    }
+    
+    // =========================
+    // LEFT CLICK → COLLECT / INTERACT
+    // =========================
+    if (leftClick)
     {
       if (auto *mp = dynamic_cast<MoneyProducer *>(p))
       {
@@ -520,7 +591,7 @@ void BuilderScene::update(float dt)
   // =========================
   // Place object (world)
   // =========================
-  if (click && m_ghost && m_canPlaceGhost)
+  if (leftClick && m_ghost && m_canPlaceGhost)
   {
     const Cost cost = m_ghost->cost();
     if (!m_wallet.spend(cost))
@@ -535,7 +606,7 @@ void BuilderScene::update(float dt)
     if (m_ghost)
       m_canPlaceGhost = m_city.canPlace(*m_ghost);
   }
-  else if (click && m_ghost && !m_canPlaceGhost)
+  else if (leftClick && m_ghost && !m_canPlaceGhost)
   {
     if (auto *b = dynamic_cast<Building *>(m_ghost.get()))
     {
@@ -577,8 +648,22 @@ void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target
 {
   if (!target || !target->canBeDeleted())
     return;
+
   m_deletePromptVisible = true;
   m_deleteTarget = target;
+
+  // 🔹 Decide mode: sell if it has value, otherwise delete
+  const Cost sell = target->sellValue();
+  if (sell.amount > 0)
+  {
+    m_deleteMode = DeleteMode::Sell;
+    m_deleteLabel->setString("Sell object?");
+  }
+  else
+  {
+    m_deleteMode = DeleteMode::Delete;
+    m_deleteLabel->setString("Delete object?");
+  }
 
   const sf::Vector2f viewSize = m_uiView.getSize();
   const sf::Vector2f bgSize = m_deleteBg.getSize();
@@ -587,21 +672,22 @@ void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target
   pos.y = std::clamp(pos.y, 6.f, viewSize.y - bgSize.y - 6.f);
   m_deleteBg.setPosition(pos);
 
-  if (m_deleteLabel)
-  {
-    const sf::FloatRect labelBounds = m_deleteLabel->getLocalBounds();
-    m_deleteLabel->setPosition({pos.x + (bgSize.x - labelBounds.size.x) * 0.5f - labelBounds.position.x,
-                                pos.y + 6.f});
-  }
+  const sf::FloatRect labelBounds = m_deleteLabel->getLocalBounds();
+  m_deleteLabel->setPosition({pos.x + (bgSize.x - labelBounds.size.x) * 0.5f - labelBounds.position.x,
+                              pos.y + 6.f});
 
   const sf::Vector2f yesPos{pos.x + 12.f, pos.y + 26.f};
   const sf::Vector2f noPos{pos.x + bgSize.x - 12.f - 50.f, pos.y + 26.f};
-  m_deleteYes = PanelButton(sf::Vector2f{50.f, 18.f}, yesPos);
-  m_deleteNo = PanelButton(sf::Vector2f{50.f, 18.f}, noPos);
+
+  m_deleteYes = PanelButton({50.f, 18.f}, yesPos);
+  m_deleteNo = PanelButton({50.f, 18.f}, noPos);
+
   m_deleteYes.setOutline(sf::Color(120, 80, 85), 1.f);
   m_deleteNo.setOutline(sf::Color(120, 80, 85), 1.f);
+
   m_deleteYes.setText(m_uiFont, "Yes", 7, sf::Color::Black);
   m_deleteNo.setText(m_uiFont, "No", 7, sf::Color::Black);
+
   m_deleteYes.setTextOffset({16.f, 5.f});
   m_deleteNo.setTextOffset({18.f, 5.f});
 }
@@ -655,6 +741,14 @@ void BuilderScene::render(sf::RenderTarget &target)
     m_deleteYes.draw(target);
     m_deleteNo.draw(target);
   }
+
+  if (m_upgradePromptVisible)
+  {
+    target.draw(m_upgradeBg);
+    target.draw(m_upgradeText);
+    m_upgradeYes.draw(target);
+    m_upgradeNo.draw(target);
+  }
 }
 
 void BuilderScene::loadFont()
@@ -664,4 +758,38 @@ void BuilderScene::loadFont()
     throw std::runtime_error("BuilderScene: failed to load font");
   }
   m_uiFont.setSmooth(false);
+}
+
+void BuilderScene::showUpgradePrompt(const sf::Vector2f &uiPos, Placeable *p)
+{
+  if (!p || !p->canUpgrade(m_city))
+    return;
+
+  m_upgradePromptVisible = true;
+  m_upgradeTarget = p;
+
+  const Cost cost = p->upgradeCost();
+
+  m_upgradeBg.setSize({160.f, 60.f});
+  m_upgradeBg.setFillColor(sf::Color(40, 40, 40, 220));
+  sf::Vector2f pos = uiPos + sf::Vector2f{8.f, 8.f};
+  const sf::Vector2f viewSize = m_uiView.getSize();
+  const sf::Vector2f size = m_upgradeBg.getSize();
+  pos.x = std::clamp(pos.x, 6.f, viewSize.x - size.x - 6.f);
+  pos.y = std::clamp(pos.y, 6.f, viewSize.y - size.y - 6.f);
+  m_upgradeBg.setPosition(pos);
+
+  m_upgradeText.setFont(m_uiFont);
+  m_upgradeText.setCharacterSize(8);
+  m_upgradeText.setFillColor(sf::Color::White);
+  m_upgradeText.setString(
+      "Upgrade to level " + std::to_string(p->level() + 1) +
+      "\nCost: " + std::to_string(cost.amount));
+  m_upgradeText.setPosition(uiPos + sf::Vector2f{6.f, 6.f});
+
+  m_upgradeYes = PanelButton({50.f, 16.f}, uiPos + sf::Vector2f{8.f, 38.f});
+  m_upgradeNo = PanelButton({50.f, 16.f}, uiPos + sf::Vector2f{90.f, 38.f});
+
+  m_upgradeYes.setText(m_uiFont, "Upgrade", 7, sf::Color::Black);
+  m_upgradeNo.setText(m_uiFont, "Cancel", 7, sf::Color::Black);
 }

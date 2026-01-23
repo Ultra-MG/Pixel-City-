@@ -10,10 +10,15 @@ class Placeable : public WorldObject
 {
 public:
 
-  int level = 1;
-
   virtual Cost cost() const = 0;
   virtual BuildTool buildTool() const = 0;
+  virtual Cost sellValue() const
+  {
+    Cost c = cost();
+    c.amount = c.amount / 2; 
+    return c;
+  }
+
   void saveTo(PlacedObject &out) const
   {
     WorldObject::saveTo(out);

@@ -12,15 +12,19 @@ Store::Store(int tx, int ty)
     y = ty;
     w = 2;
     h = 2;
-    level = 1;
+    m_level = 1;
     m_storedMoney = 0;
+}
+
+int Store::effectiveMaxLevel(const City &city) const
+{
+    return std::min(maxLevel(), city.townHallLevel());
 }
 
 void Store::loadTexture()
 {
     s_texture.loadFromFile("assets/store.png");
 }
-
 
 BuildingType Store::type() const
 {
@@ -41,7 +45,20 @@ bool Store::canBePlaced(const City &) const
 
 int Store::moneyPerMinute() const
 {
-    return 5 * level;
+    return 5 * m_level;
+}
+
+Cost Store::upgradeCost() const
+{
+    return Cost(Currency::Money, 75 * m_level);
+}
+
+void Store::upgrade(const City &city)
+{
+    if (!canUpgrade(city))
+        return;
+
+    ++m_level;
 }
 
 int Store::storedMoney() const
@@ -74,18 +91,13 @@ int Store::collectMoney()
 void Store::saveTo(PlacedObject &out) const
 {
     Building::saveTo(out);
-    out.data["level"] = std::to_string(level);
+    out.data["level"] = std::to_string(m_level);
     out.data["money"] = std::to_string(m_storedMoney);
 }
 
 void Store::loadFrom(const PlacedObject &in)
 {
     Building::loadFrom(in);
-
-    if (auto it = in.data.find("level"); it != in.data.end())
-        level = std::stoi(it->second);
-    else
-        level = 1;
 
     if (auto it = in.data.find("money"); it != in.data.end())
         m_storedMoney = std::stoi(it->second);
@@ -95,8 +107,9 @@ void Store::loadFrom(const PlacedObject &in)
 
 // ===== Rendering =====
 
-void Store::render(sf::RenderTarget &target,const sf::Font& font) const
+void Store::render(sf::RenderTarget &target, const sf::Font &font) const
 {
+    drawLevelBadge(*this, target, font);
     sf::Sprite s(s_texture);
 
     s.setPosition({float(x * cfg::TileSize),
@@ -107,27 +120,12 @@ void Store::render(sf::RenderTarget &target,const sf::Font& font) const
 
     target.draw(s);
 
-    if (m_storedMoney <= 0)
-        return;
-
-    sf::RectangleShape badge;
-    badge.setSize({float(w * cfg::TileSize), 10.f});
-    badge.setFillColor(sf::Color(0, 0, 0, 160));
-    badge.setPosition({float(x * cfg::TileSize),
-                       float(y * cfg::TileSize) - 12.f});
-    target.draw(badge);
-
-    sf::Text txt(font);
-    txt.setCharacterSize(9);
-    txt.setFillColor(sf::Color(255, 220, 120));
-    txt.setString("$" + std::to_string(m_storedMoney));
-    txt.setPosition({float(x * cfg::TileSize) + 2.f,
-                     float(y * cfg::TileSize) - 11.f});
-    target.draw(txt);
+    drawCoinBadge(*this, target, font, m_storedMoney);
 }
 
 void Store::renderGhost(sf::RenderTarget &target, bool valid) const
 {
+
     sf::Sprite s(s_texture);
 
     s.setPosition({float(x * cfg::TileSize),

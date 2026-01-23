@@ -1,7 +1,10 @@
 #include "world/City.hpp"
 #include "world/Building.hpp"
 #include "world/Infrastructure/Road.hpp"
+#include "world/Infrastructure/Water.hpp"
 #include <algorithm>
+#include "world/WorldObject.hpp"
+#include "world/Buildings/TownHall.hpp"
 
 City::City(int w, int h)
     : m_w(w), m_h(h), m_tiles((size_t)w * (size_t)h, Tile::Grass) {}
@@ -9,6 +12,18 @@ City::City(int w, int h)
 bool City::inBounds(int x, int y) const
 {
   return x >= 0 && y >= 0 && x < m_w && y < m_h;
+}
+
+bool City::isWater(int tx, int ty) const
+{
+    for (const auto& obj : m_objects)
+    {
+        if (obj->x == tx && obj->y == ty)
+        {
+            return dynamic_cast<const Water*>(obj.get()) != nullptr;
+        }
+    }
+    return false;
 }
 
 bool City::rectInBounds(int x, int y, int w, int h) const
@@ -47,6 +62,22 @@ bool City::rectOverlapsAnyObject(
   }
   return false;
 }
+
+TownHall* City::townHall() const
+{
+    for (const auto& o : m_objects)
+        if (auto* th = dynamic_cast<TownHall*>(o.get()))
+            return th;
+    return nullptr;
+}
+
+int City::townHallLevel() const
+{
+    if (auto* th = townHall())
+        return th->level();
+    return 1;
+}
+
 
 bool City::canPlace(const Placeable &obj) const
 {

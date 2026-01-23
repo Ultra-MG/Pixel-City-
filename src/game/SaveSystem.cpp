@@ -1,6 +1,7 @@
 // game/save/SaveSystem.cpp
 #include "game/SaveSystem.hpp"
 #include "game/BuildToolFactory.hpp"
+#include "world/Buildings/TownHall.hpp"
 #include "world/City.hpp"
 #include "game/Economy.hpp"
 #include <filesystem>
@@ -8,192 +9,217 @@
 #include <ctime>
 #include <iostream>
 
-namespace {
-std::filesystem::path saveDir() {
-    return std::filesystem::path("saves");
-}
-}
-
-namespace SaveSystem {
-
-GameState buildState(const std::string& cityName,
-                     const City& city,
-                     const Wallet& wallet)
+namespace
 {
-    GameState s;
-    s.cityName = cityName;
-    s.money = wallet.money();
-    s.diamonds = wallet.diamonds();
-    s.w = city.w();
-    s.h = city.h();
-    s.lastSaveTimestamp = std::time(nullptr);
-
-    s.tiles.resize(static_cast<size_t>(s.w) * static_cast<size_t>(s.h));
-    for (int y = 0; y < s.h; ++y)
-        for (int x = 0; x < s.w; ++x)
-            s.tiles[y * s.w + x] = city.getTile(x, y);
-
-    for (const auto& o : city.objects()) {
-        PlacedObject po;
-        o->saveTo(po);
-        s.objects.push_back(std::move(po));
+    std::filesystem::path saveDir()
+    {
+        return std::filesystem::path("saves");
     }
-
-    return s;
 }
 
-bool applyState(const GameState& state, City& city, Wallet& wallet)
+namespace SaveSystem
 {
-    if (state.w <= 0 || state.h <= 0)
-        return false;
 
-    wallet.set(state.money, state.diamonds);
-    city = City(state.w, state.h);
+    GameState buildState(const std::string &cityName,
+                         const City &city,
+                         const Wallet &wallet)
+    {
+        GameState s;
+        s.cityName = cityName;
+        s.money = wallet.money();
+        s.diamonds = wallet.diamonds();
+        s.w = city.w();
+        s.h = city.h();
+        s.lastSaveTimestamp = std::time(nullptr);
 
-    for (int y = 0; y < state.h; ++y)
-        for (int x = 0; x < state.w; ++x)
-            city.setTile(x, y, state.tiles[y * state.w + x]);
+        s.tiles.resize(static_cast<size_t>(s.w) * static_cast<size_t>(s.h));
+        for (int y = 0; y < s.h; ++y)
+            for (int x = 0; x < s.w; ++x)
+                s.tiles[y * s.w + x] = city.getTile(x, y);
 
-    for (const auto& o : state.objects) {
-        if (o.tool == BuildTool::None)
-            continue;
-
-        auto obj = BuildToolFactory::instance().create(o.tool, o.x, o.y);
-        if (!obj)
-            continue;
-
-        obj->loadFrom(o);
-        city.place(std::move(obj));
-    }
-
-    return true;
-}
-
-bool saveState(const GameState& state)
-{
-    const std::string safe = sanitizeName(state.cityName);
-    if (safe.empty())
-        return false;
-
-    std::filesystem::create_directories(saveDir());
-    std::ofstream out(saveDir() / (safe + ".save"), std::ios::trunc);
-    if (!out)
-        return false;
-
-    out << "NAME " << state.cityName << "\n";
-    out << "MONEY " << state.money << "\n";
-    out << "DIAMONDS " << state.diamonds << "\n";
-    out << "TIME " << state.lastSaveTimestamp << "\n";
-    out << "SIZE " << state.w << " " << state.h << "\n";
-    out << "TILES\n";
-
-    for (int y = 0; y < state.h; ++y) {
-        for (int x = 0; x < state.w; ++x)
-            out << static_cast<int>(state.tiles[y * state.w + x]) << " ";
-        out << "\n";
-    }
-
-    out << "OBJECTS " << state.objects.size() << "\n";
-
-    for (const auto& o : state.objects) {
-        out << "OBJ "
-            << static_cast<int>(o.tool) << " "
-            << o.x << " " << o.y << "\n";
-
-        for (const auto& [k, v] : o.data)
-            out << "DATA " << k << " " << v << "\n";
-
-        out << "ENDOBJ\n";
-    }
-
-    out << "END\n";
-    return true;
-}
-
-std::optional<GameState> loadState(const std::string& fileName)
-{
-    std::ifstream in(saveDir() / fileName);
-    if (!in)
-        return std::nullopt;
-
-    GameState state;
-    std::string token;
-
-    while (in >> token) {
-        if (token == "NAME") {
-            std::getline(in, state.cityName);
-            if (!state.cityName.empty() && state.cityName[0] == ' ')
-                state.cityName.erase(0, 1);
+        for (const auto &o : city.objects())
+        {
+            PlacedObject po;
+            o->saveTo(po);
+            s.objects.push_back(std::move(po));
         }
-        else if (token == "MONEY") in >> state.money;
-        else if (token == "DIAMONDS") in >> state.diamonds;
-        else if (token == "TIME") in >> state.lastSaveTimestamp;
-        else if (token == "SIZE") {
-            in >> state.w >> state.h;
-            state.tiles.resize(state.w * state.h);
-        }
-        else if (token == "TILES") {
-            for (int y = 0; y < state.h; ++y)
-                for (int x = 0; x < state.w; ++x) {
-                    int v; in >> v;
-                    state.tiles[y * state.w + x] = static_cast<Tile>(v);
-                }
-        }
-        else if (token == "OBJECTS") {
-            size_t count; in >> count;
-            for (size_t i = 0; i < count; ++i) {
-                PlacedObject po;
-                in >> token; // OBJ
-                int tool;
-                in >> tool >> po.x >> po.y;
-                po.tool = static_cast<BuildTool>(tool);
 
-                while (in >> token && token != "ENDOBJ") {
-                    if (token == "DATA") {
-                        std::string k, v;
-                        in >> k >> v;
-                        po.data[k] = v;
-                    }
-                }
+        return s;
+    }
 
-                state.objects.push_back(std::move(po));
+    bool applyState(const GameState &state, City &city, Wallet &wallet)
+    {
+        if (state.w <= 0 || state.h <= 0)
+            return false;
+
+        wallet.set(state.money, state.diamonds);
+        city = City(state.w, state.h);
+
+        for (int y = 0; y < state.h; ++y)
+            for (int x = 0; x < state.w; ++x)
+                city.setTile(x, y, state.tiles[y * state.w + x]);
+
+        for (const auto &o : state.objects)
+        {
+            if (o.tool == BuildTool::None)
+            {
+                continue;
             }
+            auto obj = BuildToolFactory::instance().create(o.tool, o.x, o.y);
+            if (!obj)
+                continue;
+
+            obj->loadFrom(o);
+            city.place(std::move(obj));
         }
-        else if (token == "END") break;
+
+        return true;
     }
 
-    return state;
-}
+    bool saveState(const GameState &state)
+    {
+        const std::string safe = sanitizeName(state.cityName);
+        if (safe.empty())
+            return false;
 
-std::vector<SaveInfo> listSaves()
-{
-    std::vector<SaveInfo> out;
-    if (!std::filesystem::exists(saveDir()))
+        std::filesystem::create_directories(saveDir());
+        std::ofstream out(saveDir() / (safe + ".save"), std::ios::trunc);
+        if (!out)
+            return false;
+
+        out << "NAME " << state.cityName << "\n";
+        out << "MONEY " << state.money << "\n";
+        out << "DIAMONDS " << state.diamonds << "\n";
+        out << "TIME " << state.lastSaveTimestamp << "\n";
+        out << "SIZE " << state.w << " " << state.h << "\n";
+        out << "TILES\n";
+
+        for (int y = 0; y < state.h; ++y)
+        {
+            for (int x = 0; x < state.w; ++x)
+                out << static_cast<int>(state.tiles[y * state.w + x]) << " ";
+            out << "\n";
+        }
+
+        out << "OBJECTS " << state.objects.size() << "\n";
+
+        for (const auto &o : state.objects)
+        {
+            out << "OBJ "
+                << static_cast<int>(o.tool) << " "
+                << o.x << " " << o.y << "\n";
+
+            for (const auto &[k, v] : o.data)
+                out << "DATA " << k << " " << v << "\n";
+
+            out << "ENDOBJ\n";
+        }
+
+        out << "END\n";
+        return true;
+    }
+
+    std::optional<GameState> loadState(const std::string &fileName)
+    {
+        std::ifstream in(saveDir() / fileName);
+        if (!in)
+            return std::nullopt;
+
+        GameState state;
+        std::string token;
+
+        while (in >> token)
+        {
+            if (token == "NAME")
+            {
+                std::getline(in, state.cityName);
+                if (!state.cityName.empty() && state.cityName[0] == ' ')
+                    state.cityName.erase(0, 1);
+            }
+            else if (token == "MONEY")
+                in >> state.money;
+            else if (token == "DIAMONDS")
+                in >> state.diamonds;
+            else if (token == "TIME")
+                in >> state.lastSaveTimestamp;
+            else if (token == "SIZE")
+            {
+                in >> state.w >> state.h;
+                state.tiles.resize(state.w * state.h);
+            }
+            else if (token == "TILES")
+            {
+                for (int y = 0; y < state.h; ++y)
+                    for (int x = 0; x < state.w; ++x)
+                    {
+                        int v;
+                        in >> v;
+                        state.tiles[y * state.w + x] = static_cast<Tile>(v);
+                    }
+            }
+            else if (token == "OBJECTS")
+            {
+                size_t count;
+                in >> count;
+                for (size_t i = 0; i < count; ++i)
+                {
+                    PlacedObject po;
+                    in >> token; // OBJ
+                    int tool;
+                    in >> tool >> po.x >> po.y;
+                    po.tool = static_cast<BuildTool>(tool);
+
+                    while (in >> token && token != "ENDOBJ")
+                    {
+                        if (token == "DATA")
+                        {
+                            std::string k, v;
+                            in >> k >> v;
+                            po.data[k] = v;
+                        }
+                    }
+
+                    state.objects.push_back(std::move(po));
+                }
+            }
+            else if (token == "END")
+                break;
+        }
+
+        return state;
+    }
+
+    std::vector<SaveInfo> listSaves()
+    {
+        std::vector<SaveInfo> out;
+        if (!std::filesystem::exists(saveDir()))
+            return out;
+
+        for (const auto &e : std::filesystem::directory_iterator(saveDir()))
+        {
+            if (e.path().extension() != ".save")
+                continue;
+
+            SaveInfo info;
+            info.fileName = e.path().filename().string();
+            auto st = loadState(info.fileName);
+            info.displayName = st ? st->cityName : e.path().stem().string();
+            out.push_back(info);
+        }
         return out;
-
-    for (const auto& e : std::filesystem::directory_iterator(saveDir())) {
-        if (e.path().extension() != ".save")
-            continue;
-
-        SaveInfo info;
-        info.fileName = e.path().filename().string();
-        auto st = loadState(info.fileName);
-        info.displayName = st ? st->cityName : e.path().stem().string();
-        out.push_back(info);
     }
-    return out;
-}
 
-std::string sanitizeName(const std::string& name)
-{
-    std::string out;
-    for (char c : name) {
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-')
-            out.push_back(c);
-        else if (c == ' ')
-            out.push_back('_');
+    std::string sanitizeName(const std::string &name)
+    {
+        std::string out;
+        for (char c : name)
+        {
+            if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-')
+                out.push_back(c);
+            else if (c == ' ')
+                out.push_back('_');
+        }
+        return out.empty() ? "save" : out;
     }
-    return out.empty() ? "save" : out;
-}
 
 }

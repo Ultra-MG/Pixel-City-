@@ -30,6 +30,12 @@ struct CropType
   std::string iconPath;
 };
 
+enum class DeleteMode
+{
+  Delete,
+  Sell
+};
+
 class BuilderScene : public Scene
 {
 public:
@@ -73,6 +79,15 @@ private:
   Placeable *m_selectedCropField = nullptr;
   bool m_cropMenuVisible = false;
 
+  // --- Upgrade Prompt ---
+  bool m_upgradePromptVisible = false;
+  Placeable *m_upgradeTarget = nullptr;
+  sf::RectangleShape m_upgradeBg;
+  sf::Text m_upgradeText;
+  PanelButton m_upgradeYes;
+  PanelButton m_upgradeNo;
+  void showUpgradePrompt(const sf::Vector2f &uiPos, Placeable *p);
+
   // --- UI ---
   sf::View m_uiView;
   sf::Text m_moneyText;
@@ -101,6 +116,7 @@ private:
   bool m_saveEnabled = true;
   std::int64_t m_timeAccMs = 0;
   EconomySystem m_economy;
+  DeleteMode m_deleteMode = DeleteMode::Delete;
 
   // --- Helpers ---
   sf::Vector2f windowMouseToInternal() const;

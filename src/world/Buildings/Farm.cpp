@@ -18,6 +18,18 @@ void Farm::loadTexture()
     s_texture.loadFromFile("assets/farm.png");
 }
 
+Cost Farm::upgradeCost() const
+{
+    return Cost(Currency::Money, 75 * m_level);
+}
+
+void Farm::upgrade(const City& city)
+{
+    if (!canUpgrade(city))
+        return;
+
+    ++m_level;
+}
 
 BuildingType Farm::type() const
 {
@@ -36,7 +48,7 @@ bool Farm::canBePlaced(const City &) const
 
 int Farm::moneyPerMinute() const
 {
-    return 5;
+    return 5 * m_level;
 }
 
 int Farm::storedMoney() const
@@ -79,8 +91,10 @@ void Farm::loadFrom(const PlacedObject &in)
         m_storedMoney = 0;
 }
 
-void Farm::render(sf::RenderTarget &target,const sf::Font& font ) const
+void Farm::render(sf::RenderTarget &target, const sf::Font &font) const
 {
+
+    drawLevelBadge(*this, target, font);
     sf::Sprite s(s_texture);
 
     s.setPosition({float(x * cfg::TileSize),
@@ -91,27 +105,17 @@ void Farm::render(sf::RenderTarget &target,const sf::Font& font ) const
 
     target.draw(s);
 
-    if (m_storedMoney <= 0)
-        return;
-
-    sf::RectangleShape badge;
-    badge.setSize({float(w * cfg::TileSize), 10.f});
-    badge.setFillColor(sf::Color(0, 0, 0, 160));
-    badge.setPosition({float(x * cfg::TileSize),
-                       float(y * cfg::TileSize) - 12.f});
-    target.draw(badge);
-
-    sf::Text txt(font);
-    txt.setCharacterSize(9);
-    txt.setFillColor(sf::Color(255, 220, 120));
-    txt.setString("$" + std::to_string(m_storedMoney));
-    txt.setPosition({float(x * cfg::TileSize) + 2.f,
-                     float(y * cfg::TileSize) - 11.f});
-    target.draw(txt);
+    drawCoinBadge(*this,target,font,m_storedMoney);
 }
+int Farm::effectiveMaxLevel(const City& city) const
+{
+    return std::min(maxLevel(), city.townHallLevel());
+}
+
 
 void Farm::renderGhost(sf::RenderTarget &target, bool valid) const
 {
+
     sf::Sprite s(s_texture);
 
     s.setPosition({float(x * cfg::TileSize),
