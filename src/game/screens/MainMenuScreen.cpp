@@ -19,7 +19,7 @@ MainMenuScreen::MainMenuScreen(sf::RenderWindow &window,
     m_uiView.setSize({internalW, internalH});
     m_uiView.setCenter({internalW * 0.5f, internalH * 0.5f});
 
-    if (!m_font.openFromFile("assets/fonts/pixelFont.ttf"))
+    if (!m_font.openFromFile(cfg::FontPixel))
     {
         throw std::runtime_error("MainMenuScreen: failed to load font");
     }

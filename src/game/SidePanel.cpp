@@ -1,5 +1,6 @@
 #include "game/SidePanel.hpp"
 #include "game/Economy.hpp"
+#include "core/Config.hpp"
 #include "game/BuildToolFactory.hpp"
 #include <string>
 #include <stdexcept>
@@ -11,7 +12,7 @@ SidePanel::SidePanel(float collapsedW, float expandedW, float height)
     m_bg.setSize({0.f, 0.f});
     m_bg.setFillColor(sf::Color(30, 30, 30, 220));
 
-    if (!m_font.openFromFile("assets/fonts/pixelFont.ttf"))
+    if (!m_font.openFromFile(cfg::FontPixel))
     {
         throw std::runtime_error("SidePanel: failed to load font");
     }

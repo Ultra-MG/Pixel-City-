@@ -22,7 +22,7 @@ bool Bridge::canBePlaced(const City &) const
     return true;
 }
 
-void Bridge::render(sf::RenderTarget &target) const
+void Bridge::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

@@ -7,7 +7,7 @@ class WorldObject : public Saveable {
 public:
   virtual ~WorldObject() = default;
 
-  virtual void render(sf::RenderTarget& target) const = 0;
+  virtual void render(sf::RenderTarget& target, const sf::Font& font) const = 0;
   virtual void update(float) {}
   void saveTo(PlacedObject& out) const override;
   void loadFrom(const PlacedObject& in) override;

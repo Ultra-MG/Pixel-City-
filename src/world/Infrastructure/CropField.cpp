@@ -24,7 +24,7 @@ bool CropField::canBePlaced(const City &) const
     return true;
 }
 
-void CropField::render(sf::RenderTarget &target) const
+void CropField::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
     s.setPosition({float(x * cfg::TileSize), float(y * cfg::TileSize)});

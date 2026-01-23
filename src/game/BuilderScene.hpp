@@ -77,11 +77,11 @@ private:
   sf::View m_uiView;
   sf::Text m_moneyText;
   sf::Text m_diamondText;
-  std::optional<sf::Texture> m_coinTexture;
-  std::optional<sf::Texture> m_diamondTexture;
-  std::optional<sf::Sprite> m_coinSprite;
-  std::optional<sf::Sprite> m_diamondSprite;
-  std::optional<sf::Text> m_toastText;
+  sf::Texture m_coinTexture;
+  sf::Texture m_diamondTexture;
+  sf::Sprite m_coinSprite;
+  sf::Sprite m_diamondSprite;
+  sf::Text m_toastText;
   float m_toastTimer = 0.f;
 
   bool m_deletePromptVisible = false;
@@ -110,4 +110,11 @@ private:
   void saveGame();
   void showToast(const std::string &text, float seconds);
   void showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target);
+  void loadFont();
+  void loadTextures();
+  void initDeleteButtons();
+  void initCrops();
+  void initCurrencyUi();
+  void initPanelButton();
+  void restoreState(const std::optional<GameState> &state);
 };

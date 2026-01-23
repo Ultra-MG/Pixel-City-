@@ -1,9 +1,9 @@
 #include "world/Buildings/TownHall.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include "core/Config.hpp"
 
 sf::Texture TownHall::s_texture;
-sf::Font TownHall::s_font;
 
 TownHall::TownHall(int tx, int ty)
 {
@@ -20,11 +20,6 @@ void TownHall::loadTexture()
     s_texture.loadFromFile("assets/townhall.png");
 }
 
-void TownHall::loadFont()
-{
-    s_font.openFromFile("assets/fonts/pixelFont.ttf");
-}
-
 BuildingType TownHall::type() const
 {
     return BuildingType::TownHall;
@@ -35,21 +30,20 @@ bool TownHall::requiresRoadAccess() const
     return true;
 }
 
-void TownHall::tick(std::int64_t seconds, EconomySystem &eco)
+void TownHall::tick(std::int64_t seconds)
 {
-    const int produced =
-        static_cast<int>((seconds * moneyPerMinute()) / 60);
+    MoneyProducer::tick(seconds);
+}
 
-    if (produced > 0)
-        eco.addMoney(produced);
+int TownHall::collectMoney()
+{
+    return collect();
 }
 
 bool TownHall::canBePlaced(const City &) const
 {
     return true;
 }
-
-// ===== MoneyProducer =====
 
 int TownHall::moneyPerMinute() const
 {
@@ -70,8 +64,6 @@ void TownHall::applyOffline(std::int64_t seconds)
 {
     MoneyProducer::applyOffline(seconds);
 }
-
-// ===== Save / Load =====
 
 void TownHall::saveTo(PlacedObject &out) const
 {
@@ -94,10 +86,10 @@ void TownHall::loadFrom(const PlacedObject &in)
     else
         m_storedMoney = 0;
 }
- 
+
 // ===== Rendering =====
 
-void TownHall::render(sf::RenderTarget &target) const
+void TownHall::render(sf::RenderTarget &target,const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
     s.setPosition({float(x * cfg::TileSize),
@@ -106,15 +98,22 @@ void TownHall::render(sf::RenderTarget &target) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
     target.draw(s);
 
-    sf::Text txt(s_font);
-    txt.setCharacterSize(10);
-    txt.setFillColor(sf::Color::White);
-    txt.setString("Lv " + std::to_string(level) +
-                  " $" + std::to_string(m_storedMoney));
+    if (m_storedMoney <= 0)
+        return;
 
-    txt.setPosition({float(x * cfg::TileSize),
-                     float(y * cfg::TileSize) - 12.f});
+    sf::RectangleShape badge;
+    badge.setSize({float(w * cfg::TileSize), 10.f});
+    badge.setFillColor(sf::Color(0, 0, 0, 160));
+    badge.setPosition({float(x * cfg::TileSize),
+                       float(y * cfg::TileSize) - 12.f});
+    target.draw(badge);
 
+    sf::Text txt(font);
+    txt.setCharacterSize(9);
+    txt.setFillColor(sf::Color(255, 220, 120));
+    txt.setString("$" + std::to_string(m_storedMoney));
+    txt.setPosition({float(x * cfg::TileSize) + 2.f,
+                     float(y * cfg::TileSize) - 11.f});
     target.draw(txt);
 }
 

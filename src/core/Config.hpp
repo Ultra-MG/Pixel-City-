@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-namespace cfg {
+namespace cfg
+{
   inline constexpr std::uint32_t InternalW = 320;
   inline constexpr std::uint32_t InternalH = 180;
 
@@ -19,4 +20,7 @@ namespace cfg {
   inline constexpr float ZoomMin = 0.5f;
   inline constexpr float ZoomMax = 3.0f;
   inline constexpr float ZoomStep = 1.1f; // wheel zoom factor
+
+  inline constexpr const char *FontPixel =
+      "assets/fonts/pixelFont.ttf";
 }

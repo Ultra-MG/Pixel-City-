@@ -32,7 +32,7 @@ bool House::canBePlaced(const City &) const
     return true;
 }
 
-void House::render(sf::RenderTarget &target) const
+void House::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

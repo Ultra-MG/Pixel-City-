@@ -29,12 +29,13 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
                            int tileSize,
                            const std::string &cityName,
                            const std::optional<GameState> &state)
-    : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH),
-      m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH),
-      m_moneyText(m_uiFont, "0", 10),
-      m_diamondText(m_uiFont, "0", 10),
-      m_economy(m_wallet)
+    : m_window(window), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
 {
+
+  restoreState(state);
+  loadFont();
+  loadTextures();
+
   m_camera.setZoomClamp(cfg::ZoomMin, cfg::ZoomMax);
 
   const float mapW = float(cfg::CityW * cfg::TileSize);
@@ -45,6 +46,49 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   m_uiView.setCenter({internalW * 0.5f, internalH * 0.5f});
 
   m_cityName = cityName;
+
+  initDeleteButtons();
+  initCrops();
+  initCurrencyUi();
+  initPanelButton();
+  updateCurrencyUI();
+
+  saveGame();
+}
+
+void BuilderScene::initCurrencyUi()
+{
+  if (!m_coinTexture.loadFromFile("assets/coin.png"))
+    throw std::runtime_error("BuilderScene: failed to load assets/coin.png");
+
+  if (!m_diamondTexture.loadFromFile("assets/diamond.png"))
+    throw std::runtime_error("BuilderScene: failed to load assets/diamond.png");
+
+  m_coinTexture.setSmooth(false);
+  m_diamondTexture.setSmooth(false);
+
+  m_coinSprite.setTexture(m_coinTexture, true);
+  m_diamondSprite.setTexture(m_diamondTexture, true);
+
+  m_moneyText.setFillColor(sf::Color::White);
+  m_diamondText.setFillColor(sf::Color::White);
+
+  m_toastText.setFillColor(sf::Color(255, 230, 180));
+}
+
+
+void BuilderScene::initPanelButton()
+{
+  m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
+  m_panelButton.setOutline(sf::Color(70, 70, 75), 1.f);
+
+  m_panelButton.loadImage("assets/ui/hammer.png");
+  m_panelButton.setImageSize({20.f, 20.f});
+  m_panelButton.setImageOffset({0.f, 0.f});
+}
+
+void BuilderScene::restoreState(const std::optional<GameState> &state)
+{
   if (state)
   {
     m_saveEnabled = false;
@@ -60,60 +104,15 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
       for (auto &o : m_city.objects())
       {
         if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
-        {
-          const int before = p->storedMoney();
           p->applyOffline(delta);
-          const int gained = p->storedMoney() - before;
-
-          if (gained > 0)
-            m_wallet.addMoney(gained);
-        }
       }
     }
     m_saveEnabled = true;
   }
+}
 
-  if (!m_uiFont.openFromFile("assets/fonts/pixelFont.ttf"))
-  {
-    throw std::runtime_error("BuilderScene: failed to load font");
-  }
-  m_uiFont.setSmooth(false);
-
-  m_toastText.emplace(m_uiFont, "", 10);
-  m_toastText->setFillColor(sf::Color(255, 230, 180));
-
-  m_moneyText.setFillColor(sf::Color::White);
-  m_diamondText.setFillColor(sf::Color::White);
-
-  m_coinTexture.emplace();
-  m_diamondTexture.emplace();
-  if (!m_coinTexture->loadFromFile("assets/coin.png"))
-  {
-    throw std::runtime_error("BuilderScene: failed to load assets/coin.png");
-  }
-  if (!m_diamondTexture->loadFromFile("assets/diamond.png"))
-  {
-    throw std::runtime_error("BuilderScene: failed to load assets/diamond.png");
-  }
-  m_coinTexture->setSmooth(false);
-  m_diamondTexture->setSmooth(false);
-  m_coinSprite.emplace(*m_coinTexture);
-  m_diamondSprite.emplace(*m_diamondTexture);
-  updateCurrencyUI();
-
-  m_cropMenuBg.setSize({170.f, 140.f});
-  m_cropMenuBg.setFillColor(sf::Color(30, 30, 30, 220));
-  m_cropMenuBg.setOutlineColor(sf::Color(120, 80, 85));
-  m_cropMenuBg.setOutlineThickness(1.f);
-  m_cropMenuBg.setPosition({0.f, 0.f});
-
-  m_panelButton = Button({20.f, 20.f}, {6.f, 6.f});
-  m_panelButton.setOutline(sf::Color(70, 70, 75), 1.f);
-
-  m_panelButton.loadImage("assets/ui/hammer.png");
-  m_panelButton.setImageSize({20.f, 20.f});
-  m_panelButton.setImageOffset({0.f, 0.f});
-
+void BuilderScene::initDeleteButtons()
+{
   m_deleteBg.setSize({140.f, 48.f});
   m_deleteBg.setFillColor(sf::Color(30, 30, 30, 220));
   m_deleteBg.setOutlineColor(sf::Color(120, 80, 85));
@@ -126,7 +125,38 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   m_deleteNo.setOutline(sf::Color(120, 80, 85), 1.f);
   m_deleteYes.setText(m_uiFont, "Yes", 7, sf::Color::Black);
   m_deleteNo.setText(m_uiFont, "No", 7, sf::Color::Black);
+}
+void BuilderScene::initCrops()
+{
 
+  m_cropTypes.emplace_back(CropType{"Wheat", []()
+                                    { return new Wheat(); }, "assets/crops/wheat.png"});
+  m_cropTypes.emplace_back(CropType{"Corn", []()
+                                    { return new Corn(); }, "assets/crops/corn.png"});
+  m_cropTypes.emplace_back(CropType{"Carrot", []()
+                                    { return new Carrot(); }, "assets/crops/carrot.png"});
+  m_cropTypes.emplace_back(CropType{"Potato", []()
+                                    { return new Potato(); }, "assets/crops/potato.png"});
+
+  const sf::Vector2f buttonSize{40.f, 40.f};
+  for (size_t i = 0; i < m_cropTypes.size(); ++i)
+  {
+    m_cropButtons.emplace_back(Button(buttonSize, {0.f, 0.f}));
+    m_cropButtons.back().loadImage(m_cropTypes[i].iconPath);
+    m_cropButtons.back().setImageSize({32.f, 32.f});
+    m_cropButtons.back().setImageOffset({4.f, 4.f});
+    m_cropLabels.emplace_back(m_uiFont, m_cropTypes[i].name, 10);
+    m_cropLabels.back().setFillColor(sf::Color::White);
+  }
+
+  m_cropMenuBg.setSize({170.f, 140.f});
+  m_cropMenuBg.setFillColor(sf::Color(30, 30, 30, 220));
+  m_cropMenuBg.setOutlineColor(sf::Color(120, 80, 85));
+  m_cropMenuBg.setOutlineThickness(1.f);
+  m_cropMenuBg.setPosition({0.f, 0.f});
+}
+void BuilderScene::loadTextures()
+{
   Road::loadTexture();
   Water::loadTexture();
   Bridge::loadTexture();
@@ -143,34 +173,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   Corn::loadTexture();
   Carrot::loadTexture();
   Potato::loadTexture();
-
-  // Initialize crop types
-  m_cropTypes.emplace_back(CropType{"Wheat", []()
-                                    { return new Wheat(); }, "assets/crops/wheat.png"});
-  m_cropTypes.emplace_back(CropType{"Corn", []()
-                                    { return new Corn(); }, "assets/crops/corn.png"});
-  m_cropTypes.emplace_back(CropType{"Carrot", []()
-                                    { return new Carrot(); }, "assets/crops/carrot.png"});
-  m_cropTypes.emplace_back(CropType{"Potato", []()
-                                    { return new Potato(); }, "assets/crops/potato.png"});
-
-  // Initialize crop buttons
-  const sf::Vector2f buttonSize{40.f, 40.f};
-  for (size_t i = 0; i < m_cropTypes.size(); ++i)
-  {
-    m_cropButtons.emplace_back(Button(buttonSize, {0.f, 0.f}));
-    m_cropButtons.back().loadImage(m_cropTypes[i].iconPath);
-    m_cropButtons.back().setImageSize({32.f, 32.f});
-    m_cropButtons.back().setImageOffset({4.f, 4.f});
-    m_cropLabels.emplace_back(m_uiFont, m_cropTypes[i].name, 10);
-    m_cropLabels.back().setFillColor(sf::Color::White);
-  }
-
-  saveGame();
 }
-
-// ------------------------------------------------------------
-
 void BuilderScene::beginFrame()
 {
   m_input.beginFrame();
@@ -181,8 +184,6 @@ void BuilderScene::handleEvent(const sf::Event &e)
   m_input.handleEvent(e);
 }
 
-// ------------------------------------------------------------
-
 sf::Vector2f BuilderScene::windowMouseToInternal() const
 {
   const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
@@ -190,8 +191,6 @@ sf::Vector2f BuilderScene::windowMouseToInternal() const
       float(mp.x) / float(cfg::Scale),
       float(mp.y) / float(cfg::Scale)};
 }
-
-// ------------------------------------------------------------
 
 void BuilderScene::updateHoverTile()
 {
@@ -201,8 +200,6 @@ void BuilderScene::updateHoverTile()
   m_hoverTx = std::clamp(int(world.x) / cfg::TileSize, 0, m_city.w() - 1);
   m_hoverTy = std::clamp(int(world.y) / cfg::TileSize, 0, m_city.h() - 1);
 }
-
-// ------------------------------------------------------------
 
 void BuilderScene::positionCropMenu(const sf::Vector2f &uiPos)
 {
@@ -238,8 +235,6 @@ void BuilderScene::positionCropMenu(const sf::Vector2f &uiPos)
   }
 }
 
-// ------------------------------------------------------------
-
 void BuilderScene::updateCurrencyUI()
 {
   const sf::Vector2f viewSize = m_uiView.getSize();
@@ -265,36 +260,31 @@ void BuilderScene::updateCurrencyUI()
   const float startX = viewSize.x - padding.x - totalWidth;
   const float y = padding.y;
 
-  const sf::Vector2u coinSize = m_coinTexture->getSize();
+  const sf::Vector2u coinSize = m_coinTexture.getSize();
   if (coinSize.x > 0 && coinSize.y > 0)
   {
     const float scale = iconSize / static_cast<float>(std::max(coinSize.x, coinSize.y));
-    m_coinSprite->setScale({scale, scale});
+    m_coinSprite.setScale({scale, scale});
   }
-  const sf::Vector2u diamondSize = m_diamondTexture->getSize();
+  const sf::Vector2u diamondSize = m_diamondTexture.getSize();
   if (diamondSize.x > 0 && diamondSize.y > 0)
   {
     const float scale = iconSize / static_cast<float>(std::max(diamondSize.x, diamondSize.y));
-    m_diamondSprite->setScale({scale, scale});
+    m_diamondSprite.setScale({scale, scale});
   }
 
-  m_coinSprite->setPosition({startX, y + 2.f});
+  m_coinSprite.setPosition({startX, y + 2.f});
   m_moneyText.setPosition({startX + iconSize + gap, y});
   const float diamondStart = startX + iconSize + gap + moneyWidth + groupGap;
-  m_diamondSprite->setPosition({diamondStart, y + 2.f});
+  m_diamondSprite.setPosition({diamondStart, y + 2.f});
   m_diamondText.setPosition({diamondStart + iconSize + gap, y});
 }
-
-// ------------------------------------------------------------
 
 void BuilderScene::update(float dt)
 {
 
   updateHoverTile();
 
-  // =========================
-  // Camera controls
-  // =========================
   const float wheel = m_input.wheelDelta();
   if (wheel != 0.f)
   {
@@ -329,7 +319,7 @@ void BuilderScene::update(float dt)
     for (auto &o : m_city.objects())
     {
       if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
-        p->tick(seconds, m_economy);
+        p->tick(seconds);
     }
   }
 
@@ -445,13 +435,32 @@ void BuilderScene::update(float dt)
 
   if (click && m_activeTool == BuildTool::None && !m_cropMenuVisible)
   {
-    auto p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
-    if (p && dynamic_cast<CropField *>(p))
+    auto *p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
+
+    if (p)
     {
-      m_selectedCropField = p;
-      m_cropMenuVisible = true;
-      positionCropMenu(mouseUI);
-      return;
+      if (auto *mp = dynamic_cast<MoneyProducer *>(p))
+      {
+        const int collected = mp->collect();
+        if (collected > 0)
+        {
+          m_wallet.addMoney(collected);
+          updateCurrencyUI();
+          saveGame();
+        }
+        return;
+      }
+
+      if (auto *cf = dynamic_cast<CropField *>(p))
+      {
+        if (cf->crop() == nullptr)
+        {
+          m_selectedCropField = p;
+          m_cropMenuVisible = true;
+          positionCropMenu(mouseUI);
+        }
+        return;
+      }
     }
   }
 
@@ -541,8 +550,6 @@ void BuilderScene::update(float dt)
   updateCurrencyUI();
 }
 
-// ------------------------------------------------------------
-
 void BuilderScene::saveGame()
 {
   if (!m_saveEnabled)
@@ -554,23 +561,17 @@ void BuilderScene::saveGame()
   SaveSystem::saveState(state);
 }
 
-// ------------------------------------------------------------
-
 void BuilderScene::showToast(const std::string &text, float seconds)
 {
-  if (!m_toastText)
-    return;
 
-  m_toastText->setString(text);
-  const sf::FloatRect bounds = m_toastText->getLocalBounds();
-  m_toastText->setOrigin({bounds.position.x + bounds.size.x * 0.5f,
-                          bounds.position.y + bounds.size.y * 0.5f});
+  m_toastText.setString(text);
+  const sf::FloatRect bounds = m_toastText.getLocalBounds();
+  m_toastText.setOrigin({bounds.position.x + bounds.size.x * 0.5f,
+                         bounds.position.y + bounds.size.y * 0.5f});
   const sf::Vector2f viewSize = m_uiView.getSize();
-  m_toastText->setPosition({viewSize.x * 0.5f, 18.f});
+  m_toastText.setPosition({viewSize.x * 0.5f, 18.f});
   m_toastTimer = seconds;
 }
-
-// ------------------------------------------------------------
 
 void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target)
 {
@@ -605,8 +606,6 @@ void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target
   m_deleteNo.setTextOffset({18.f, 5.f});
 }
 
-// ------------------------------------------------------------
-
 void BuilderScene::render(sf::RenderTarget &target)
 {
   m_camera.apply(target);
@@ -616,7 +615,7 @@ void BuilderScene::render(sf::RenderTarget &target)
 
   // placed objects
   for (const auto &obj : m_city.objects())
-    obj->render(target);
+    obj->render(target, m_uiFont);
 
   // ghost
   if (m_ghost)
@@ -628,14 +627,12 @@ void BuilderScene::render(sf::RenderTarget &target)
   target.setView(m_uiView);
   m_panel.render(target);
   m_panelButton.draw(target);
-  if (m_coinSprite)
-    target.draw(*m_coinSprite);
-  if (m_diamondSprite)
-    target.draw(*m_diamondSprite);
+  target.draw(m_coinSprite);
+  target.draw(m_diamondSprite);
   target.draw(m_moneyText);
   target.draw(m_diamondText);
-  if (m_toastText && m_toastTimer > 0.f)
-    target.draw(*m_toastText);
+  if (m_toastTimer > 0.f)
+    target.draw(m_toastText);
 
   if (m_cropMenuVisible)
   {
@@ -658,4 +655,13 @@ void BuilderScene::render(sf::RenderTarget &target)
     m_deleteYes.draw(target);
     m_deleteNo.draw(target);
   }
+}
+
+void BuilderScene::loadFont()
+{
+  if (!m_uiFont.openFromFile(cfg::FontPixel))
+  {
+    throw std::runtime_error("BuilderScene: failed to load font");
+  }
+  m_uiFont.setSmooth(false);
 }

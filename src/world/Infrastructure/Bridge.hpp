@@ -18,7 +18,7 @@ public:
     Cost cost() const override { return {Currency::Money, 5}; }
     bool canBePlaced(const City &city) const override;
 
-    void render(sf::RenderTarget &target) const override;
+    void render(sf::RenderTarget &target, const sf::Font& font) const override;
     void renderGhost(sf::RenderTarget &target, bool valid) const override;
     bool canOverlap(const Placeable &other) const override
     {

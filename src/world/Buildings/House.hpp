@@ -17,7 +17,7 @@ public:
     bool requiresRoadAccess() const override;
     bool canBePlaced(const City&) const override;
 
-    void render(sf::RenderTarget& target) const override;
+    void render(sf::RenderTarget& target,const sf::Font& font) const override;
     void renderGhost(sf::RenderTarget& target, bool valid) const override;
     BuildTool buildTool() const override
     {

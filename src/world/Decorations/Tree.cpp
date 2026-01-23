@@ -20,7 +20,7 @@ bool Tree::canBePlaced(const City &) const
     return true;
 }
 
-void Tree::render(sf::RenderTarget &target) const
+void Tree::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

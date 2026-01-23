@@ -22,7 +22,7 @@ bool LampPost::canBePlaced(const City &) const
     return true;
 }
 
-void LampPost::render(sf::RenderTarget &target) const
+void LampPost::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

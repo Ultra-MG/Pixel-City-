@@ -22,7 +22,7 @@ bool Road::canBePlaced(const City &) const
     return true;
 }
 
-void Road::render(sf::RenderTarget &target) const
+void Road::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

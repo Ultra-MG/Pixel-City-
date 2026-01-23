@@ -18,7 +18,7 @@ bool Fountain::canBePlaced(const City &) const
     return true; // does not block
 }
 
-void Fountain::render(sf::RenderTarget &target) const
+void Fountain::render(sf::RenderTarget &target,const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

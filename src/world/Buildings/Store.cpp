@@ -2,6 +2,7 @@
 #include "world/Buildings/Store.hpp"
 #include "game/EconomySystem.hpp"
 #include <SFML/Graphics/Sprite.hpp>
+#include "core/Config.hpp"
 
 sf::Texture Store::s_texture;
 
@@ -19,6 +20,7 @@ void Store::loadTexture()
 {
     s_texture.loadFromFile("assets/store.png");
 }
+
 
 BuildingType Store::type() const
 {
@@ -57,25 +59,26 @@ void Store::applyOffline(std::int64_t seconds)
     MoneyProducer::applyOffline(seconds);
 }
 
-void Store::tick(std::int64_t seconds, EconomySystem& eco)
+void Store::tick(std::int64_t seconds)
 {
-    const int produced =
-        static_cast<int>((seconds * moneyPerMinute()) / 60);
+    MoneyProducer::tick(seconds);
+}
 
-    if (produced > 0)
-        eco.addMoney(produced);
+int Store::collectMoney()
+{
+    return collect();
 }
 
 // ===== Save / Load =====
 
-void Store::saveTo(PlacedObject& out) const
+void Store::saveTo(PlacedObject &out) const
 {
     Building::saveTo(out);
     out.data["level"] = std::to_string(level);
     out.data["money"] = std::to_string(m_storedMoney);
 }
 
-void Store::loadFrom(const PlacedObject& in)
+void Store::loadFrom(const PlacedObject &in)
 {
     Building::loadFrom(in);
 
@@ -92,7 +95,7 @@ void Store::loadFrom(const PlacedObject& in)
 
 // ===== Rendering =====
 
-void Store::render(sf::RenderTarget &target) const
+void Store::render(sf::RenderTarget &target,const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 
@@ -103,6 +106,24 @@ void Store::render(sf::RenderTarget &target) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
 
     target.draw(s);
+
+    if (m_storedMoney <= 0)
+        return;
+
+    sf::RectangleShape badge;
+    badge.setSize({float(w * cfg::TileSize), 10.f});
+    badge.setFillColor(sf::Color(0, 0, 0, 160));
+    badge.setPosition({float(x * cfg::TileSize),
+                       float(y * cfg::TileSize) - 12.f});
+    target.draw(badge);
+
+    sf::Text txt(font);
+    txt.setCharacterSize(9);
+    txt.setFillColor(sf::Color(255, 220, 120));
+    txt.setString("$" + std::to_string(m_storedMoney));
+    txt.setPosition({float(x * cfg::TileSize) + 2.f,
+                     float(y * cfg::TileSize) - 11.f});
+    target.draw(txt);
 }
 
 void Store::renderGhost(sf::RenderTarget &target, bool valid) const
@@ -116,8 +137,8 @@ void Store::renderGhost(sf::RenderTarget &target, bool valid) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
 
     s.setColor(valid
-        ? sf::Color(200, 255, 200, 180)
-        : sf::Color(255, 0, 0, 180));
+                   ? sf::Color(200, 255, 200, 180)
+                   : sf::Color(255, 0, 0, 180));
 
     target.draw(s);
 }

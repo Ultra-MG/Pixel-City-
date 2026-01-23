@@ -22,7 +22,7 @@ bool Water::canBePlaced(const City &) const
     return true;
 }
 
-void Water::render(sf::RenderTarget &target) const
+void Water::render(sf::RenderTarget &target, const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 

@@ -20,7 +20,7 @@ bool Bench::canBePlaced(const City &) const
     return true;
 }
 
-void Bench::render(sf::RenderTarget &target) const
+void Bench::render(sf::RenderTarget &target,const sf::Font& font) const
 {
     sf::Sprite s(s_texture);
 
