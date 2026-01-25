@@ -18,7 +18,6 @@
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
 #include "world/Crop.hpp"
-#include "game/EconomySystem.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -142,7 +141,6 @@ private:
   std::string m_cityName;
   bool m_saveEnabled = true;
   std::int64_t m_timeAccMs = 0;
-  EconomySystem m_economy;
   DeleteMode m_deleteMode = DeleteMode::Delete;
 
   sf::RectangleShape m_exitBtn;

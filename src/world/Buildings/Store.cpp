@@ -1,5 +1,4 @@
 #include "world/Buildings/Store.hpp"
-#include "game/EconomySystem.hpp"
 #include "game/Inventory.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include "core/Config.hpp"

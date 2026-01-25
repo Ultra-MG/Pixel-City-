@@ -33,7 +33,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
                            int tileSize,
                            const std::string &cityName,
                            const std::optional<GameState> &state)
-    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_sellTitle(m_uiFont, "", 10), m_sellQtyText(m_uiFont, "", 10), m_sellPriceText(m_uiFont, "", 10), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_inventoryPanel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet), m_scenes(scenes)
+    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_sellTitle(m_uiFont, "", 10), m_sellQtyText(m_uiFont, "", 10), m_sellPriceText(m_uiFont, "", 10), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_inventoryPanel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_scenes(scenes)
 {
 
   restoreState(state);
