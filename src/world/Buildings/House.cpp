@@ -1,6 +1,5 @@
 #include "world/Buildings/House.hpp"
 #include <SFML/Graphics/Sprite.hpp>
-#include <iostream>
 
 sf::Texture House::s_texture;
 
@@ -50,7 +49,6 @@ void House::render(sf::RenderTarget &target, const sf::Font& font) const
 void House::renderGhost(sf::RenderTarget &target, bool valid) const
 {
     sf::Sprite s(s_texture);
-    std::cout << "Rendering ghost house at (" << x << "," << y << ")\n";
 
     s.setPosition(sf::Vector2f{
         float(x * cfg::TileSize),

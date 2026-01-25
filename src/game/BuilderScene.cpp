@@ -25,7 +25,6 @@
 #include "world/Building.hpp"
 #include <SFML/Window/Mouse.hpp>
 #include <stdexcept>
-#include <algorithm>
 
 BuilderScene::BuilderScene(sf::RenderWindow &window,
                            SceneManager &scenes,

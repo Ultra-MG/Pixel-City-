@@ -35,20 +35,20 @@ void Bakery::setStoredMoney(int v)
     m_storedMoney = v;
 }
 
-void Bakery::tick(std::int64_t seconds, Inventory& inventory)
+void Bakery::tick(std::int64_t seconds, Inventory &inventory)
 {
-    const std::int64_t ticks = seconds;          
-    const int wheatNeeded = ticks / 10;          
 
-    if (wheatNeeded <= 0)
-        return;
+    m_wheatTimer += seconds;
 
-    if (!inventory.remove("wheat", wheatNeeded))
-        return;
+    while (m_wheatTimer >= 1)
+    {
+        if (!inventory.remove("wheat", 1))
+            return;
 
-    MoneyProducer::tick(wheatNeeded * 10,inventory);
+        MoneyProducer::tick(10, inventory);
+        m_wheatTimer -= 1;
+    }
 }
-
 
 void Bakery::saveTo(PlacedObject &out) const
 {
@@ -76,7 +76,6 @@ Cost Bakery::upgradeCost() const
 {
     return {Currency::Money, 100 * m_level};
 }
-
 
 void Bakery::upgrade(const City &city)
 {

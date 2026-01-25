@@ -43,6 +43,7 @@ public:
     int effectiveMaxLevel(const City &city) const override;
 
 private:
+    std::int64_t m_wheatTimer = 0;
     static sf::Texture s_texture;
     int m_storedMoney = 0;
 };

@@ -1,7 +1,6 @@
 #include "world/Infrastructure/CropField.hpp"
 #include "world/CropFactory.hpp"
 #include <SFML/Graphics/Sprite.hpp>
-#include <iostream>
 #include <string>
 #include "game/Wallet.hpp"
 
@@ -117,8 +116,6 @@ void CropField::saveTo(PlacedObject &out) const
         m_crop->saveTo(out.data);
         out.data["crop_growth"] = std::to_string(static_cast<int>(m_growthSeconds));
     }
-    std::cout << "Saved crop field with crop type: "
-              << (m_crop ? m_crop->typeName() : "none") << "\n";
 }
 
 void CropField::loadFrom(const PlacedObject &in)
