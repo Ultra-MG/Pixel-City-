@@ -22,6 +22,8 @@ public:
 
   // screenInternal: mouse position in INTERNAL pixels (pixel renderer space)
   sf::Vector2f screenToWorld(const sf::Vector2f& screenInternal) const;
+  sf::Vector2f windowToWorld(const sf::RenderWindow& window,
+                             const sf::Vector2i& pixel) const;
 
 private:
   sf::View m_view;

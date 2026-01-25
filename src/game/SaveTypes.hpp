@@ -26,6 +26,7 @@ struct GameState {
     int h = 0;
     std::vector<Tile> tiles;
     std::vector<PlacedObject> objects;
+    std::unordered_map<std::string, int> inventory;
 
     std::int64_t lastSaveTimestamp = 0;
 };

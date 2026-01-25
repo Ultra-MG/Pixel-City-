@@ -11,6 +11,9 @@
 #include "game/SidePanel.hpp"
 #include "game/Economy.hpp"
 #include "game/SaveSystem.hpp"
+#include "world/MoneyProducer.hpp"
+#include "game/Inventory.hpp"
+#include "game/InventoryPanel.hpp"
 
 #include <SFML/Graphics.hpp>
 #include "ui/Button.hpp"
@@ -22,6 +25,7 @@
 #include <string>
 #include <vector>
 #include "ui/PanelButton.hpp"
+#include <unordered_map>
 
 struct CropType
 {
@@ -55,6 +59,7 @@ private:
   // --- Core ---
   sf::RenderWindow &m_window;
   Button m_panelButton;
+  Button m_inventoryButton;
 
   Input m_input;
   Camera2D m_camera;
@@ -99,6 +104,28 @@ private:
   sf::Text m_toastText;
   float m_toastTimer = 0.f;
 
+  struct PopupText
+  {
+    sf::Text text;
+    sf::Vector2f pos;
+    float timer = 0.f;
+  };
+  std::vector<PopupText> m_popups;
+  std::unordered_map<std::string, sf::Texture> m_collectIcons;
+
+  bool m_sellPromptVisible = false;
+  std::string m_sellItemId;
+  int m_sellQty = 1;
+  int m_sellPrice = 0;
+  sf::RectangleShape m_sellBg;
+  sf::Text m_sellTitle;
+  sf::Text m_sellQtyText;
+  sf::Text m_sellPriceText;
+  PanelButton m_sellPlus;
+  PanelButton m_sellMinus;
+  PanelButton m_sellConfirm;
+  PanelButton m_sellCancel;
+
   bool m_deletePromptVisible = false;
   Placeable *m_deleteTarget = nullptr;
   sf::RectangleShape m_deleteBg;
@@ -110,8 +137,10 @@ private:
   const float m_holdThreshold = 0.6f;
 
   SidePanel m_panel;
+  InventoryPanel m_inventoryPanel;
 
   Wallet m_wallet{1000, 20};
+  Inventory m_inventory;
   std::string m_cityName;
   bool m_saveEnabled = true;
   std::int64_t m_timeAccMs = 0;
@@ -126,11 +155,15 @@ private:
   void saveGame();
   void showToast(const std::string &text, float seconds);
   void showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target);
+  void addPopup(const sf::Vector2f &worldPos, const std::string &text, float seconds);
   void loadFont();
   void loadTextures();
   void initDeleteButtons();
   void initCrops();
   void initCurrencyUi();
   void initPanelButton();
+  void initInventoryPanel();
+  void showSellPrompt(const sf::Vector2f &uiPos, const std::string &itemId);
+  void updateSellPrompt();
   void restoreState(const std::optional<GameState> &state);
 };

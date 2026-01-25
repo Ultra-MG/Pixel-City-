@@ -4,6 +4,7 @@
 #include "world/Buildings/TownHall.hpp"
 #include "world/City.hpp"
 #include "game/Economy.hpp"
+#include "game/Inventory.hpp"
 #include <filesystem>
 #include <fstream>
 #include <ctime>
@@ -22,7 +23,8 @@ namespace SaveSystem
 
     GameState buildState(const std::string &cityName,
                          const City &city,
-                         const Wallet &wallet)
+                         const Wallet &wallet,
+                         const Inventory &inv)
     {
         GameState s;
         s.cityName = cityName;
@@ -44,15 +46,19 @@ namespace SaveSystem
             s.objects.push_back(std::move(po));
         }
 
+        s.inventory = inv.all();
         return s;
     }
 
-    bool applyState(const GameState &state, City &city, Wallet &wallet)
+    bool applyState(const GameState &state, City &city, Wallet &wallet, Inventory &inv)
     {
         if (state.w <= 0 || state.h <= 0)
             return false;
 
         wallet.set(state.money, state.diamonds);
+        inv = Inventory();
+        for (const auto &kv : state.inventory)
+            inv.add(kv.first, kv.second);
         city = City(state.w, state.h);
 
         for (int y = 0; y < state.h; ++y)
@@ -114,6 +120,10 @@ namespace SaveSystem
 
             out << "ENDOBJ\n";
         }
+
+        out << "INVENTORY " << state.inventory.size() << "\n";
+        for (const auto &kv : state.inventory)
+            out << "ITEM " << kv.first << " " << kv.second << "\n";
 
         out << "END\n";
         return true;
@@ -180,6 +190,22 @@ namespace SaveSystem
                     }
 
                     state.objects.push_back(std::move(po));
+                }
+            }
+            else if (token == "INVENTORY")
+            {
+                size_t count;
+                in >> count;
+                for (size_t i = 0; i < count; ++i)
+                {
+                    std::string itemToken;
+                    in >> itemToken;
+                    if (itemToken != "ITEM")
+                        break;
+                    std::string id;
+                    int qty = 0;
+                    in >> id >> qty;
+                    state.inventory[id] = qty;
                 }
             }
             else if (token == "END")

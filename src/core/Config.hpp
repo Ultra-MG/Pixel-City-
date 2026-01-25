@@ -19,7 +19,7 @@ namespace cfg
   // Camera controls
   inline constexpr float ZoomMin = 0.5f;
   inline constexpr float ZoomMax = 3.0f;
-  inline constexpr float ZoomStep = 1.1f; // wheel zoom factor
+  inline constexpr float ZoomStep = 1.1f; 
 
   inline constexpr const char *FontPixel =
       "assets/fonts/pixelFont.ttf";

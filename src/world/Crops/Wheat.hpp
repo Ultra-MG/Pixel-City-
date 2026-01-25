@@ -11,6 +11,7 @@ public:
     int growthTime() const override { return 10; }
     int value() const override { return 20; }
     const char* typeName() const override { return "wheat"; }
+    const char* iconPath() const override { return "assets/crops/wheat.png"; }
 
 private:
     static sf::Texture s_texture;

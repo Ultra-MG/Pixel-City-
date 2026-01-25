@@ -48,3 +48,8 @@ sf::Vector2f Camera2D::screenToWorld(const sf::Vector2f& screenInternal) const {
     screenInternal.y * sy
   );
 }
+
+sf::Vector2f Camera2D::windowToWorld(const sf::RenderWindow& window,
+                                     const sf::Vector2i& pixel) const {
+  return window.mapPixelToCoords(pixel, m_view);
+}

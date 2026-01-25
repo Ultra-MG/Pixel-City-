@@ -12,6 +12,8 @@
 #include "world/Crops/Corn.hpp"
 #include "world/Crops/Carrot.hpp"
 #include "world/Crops/Potato.hpp"
+#include "world/CropRegistry.hpp"
+#include <cmath>
 #include "world/Decorations/Fountain.hpp"
 #include "world/Decorations/Tree.hpp"
 #include "world/Decorations/Bench.hpp"
@@ -29,7 +31,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
                            int tileSize,
                            const std::string &cityName,
                            const std::optional<GameState> &state)
-    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
+    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_sellTitle(m_uiFont, "", 10), m_sellQtyText(m_uiFont, "", 10), m_sellPriceText(m_uiFont, "", 10), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_inventoryPanel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
 {
 
   restoreState(state);
@@ -51,6 +53,7 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   initCrops();
   initCurrencyUi();
   initPanelButton();
+  initInventoryPanel();
   updateCurrencyUI();
 
   saveGame();
@@ -86,12 +89,42 @@ void BuilderScene::initPanelButton()
   m_panelButton.setImageOffset({0.f, 0.f});
 }
 
+void BuilderScene::initInventoryPanel()
+{
+  const float y = m_uiView.getSize().y - 26.f;
+  m_inventoryButton = Button({20.f, 20.f}, {6.f, y});
+  m_inventoryButton.setOutline(sf::Color(70, 70, 75), 1.f);
+  m_inventoryButton.loadImage("assets/ui/inventory.png");
+  m_inventoryButton.setImageSize({20.f, 20.f});
+  m_inventoryButton.setImageOffset({0.f, 0.f});
+
+  m_sellBg.setSize({180.f, 70.f});
+  m_sellBg.setFillColor(sf::Color(30, 30, 30, 220));
+  m_sellBg.setOutlineColor(sf::Color(120, 80, 85));
+  m_sellBg.setOutlineThickness(1.f);
+  m_sellTitle.setFillColor(sf::Color(245, 240, 220));
+  m_sellQtyText.setFillColor(sf::Color(245, 240, 220));
+  m_sellPriceText.setFillColor(sf::Color(255, 220, 120));
+  m_sellPlus = PanelButton(sf::Vector2f{18.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_sellMinus = PanelButton(sf::Vector2f{18.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_sellConfirm = PanelButton(sf::Vector2f{52.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_sellCancel = PanelButton(sf::Vector2f{52.f, 18.f}, sf::Vector2f{0.f, 0.f});
+  m_sellPlus.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellMinus.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellConfirm.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellCancel.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellPlus.setText(m_uiFont, "+", 10, sf::Color::Black);
+  m_sellMinus.setText(m_uiFont, "-", 10, sf::Color::Black);
+  m_sellConfirm.setText(m_uiFont, "Confirm", 7, sf::Color::Black);
+  m_sellCancel.setText(m_uiFont, "Cancel", 7, sf::Color::Black);
+}
+
 void BuilderScene::restoreState(const std::optional<GameState> &state)
 {
   if (state)
   {
     m_saveEnabled = false;
-    SaveSystem::applyState(*state, m_city, m_wallet);
+    SaveSystem::applyState(*state, m_city, m_wallet, m_inventory);
     if (!state->cityName.empty())
       m_cityName = state->cityName;
 
@@ -178,6 +211,23 @@ void BuilderScene::loadTextures()
   Corn::loadTexture();
   Carrot::loadTexture();
   Potato::loadTexture();
+
+  m_collectIcons.clear();
+  sf::Texture coin;
+  if (coin.loadFromFile("assets/coin.png"))
+  {
+    coin.setSmooth(false);
+    m_collectIcons.emplace("coin", std::move(coin));
+  }
+  for (const auto &crop : CropRegistry::all())
+  {
+    sf::Texture tex;
+    if (tex.loadFromFile(crop.iconPath))
+    {
+      tex.setSmooth(false);
+      m_collectIcons.emplace(crop.id, std::move(tex));
+    }
+  }
 }
 void BuilderScene::beginFrame()
 {
@@ -199,8 +249,8 @@ sf::Vector2f BuilderScene::windowMouseToInternal() const
 
 void BuilderScene::updateHoverTile()
 {
-  const sf::Vector2f mouseInternal = windowMouseToInternal();
-  const sf::Vector2f world = m_camera.screenToWorld(mouseInternal);
+  const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
+  const sf::Vector2f world = m_camera.windowToWorld(m_window, mp);
 
   m_hoverTx = std::clamp(int(world.x) / cfg::TileSize, 0, m_city.w() - 1);
   m_hoverTy = std::clamp(int(world.y) / cfg::TileSize, 0, m_city.h() - 1);
@@ -288,10 +338,12 @@ void BuilderScene::updateCurrencyUI()
 void BuilderScene::update(float dt)
 {
 
-  updateHoverTile();
+  for (auto &o : m_city.objects())
+    o->update(dt);
   const sf::Vector2i mp = sf::Mouse::getPosition(m_window);
   const sf::Vector2f mouseUI =
       m_window.mapPixelToCoords(mp, m_uiView);
+  const sf::Vector2f mouseWorld = m_camera.windowToWorld(m_window, mp);
 
   const bool leftClick = m_input.leftPressed();
   const bool rightClick = m_input.rightPressed();
@@ -347,11 +399,27 @@ void BuilderScene::update(float dt)
     m_camera.move(-deltaWorld);
   }
 
+  updateHoverTile();
+
   if (m_toastTimer > 0.f)
   {
     m_toastTimer -= dt;
     if (m_toastTimer <= 0.f)
       m_toastTimer = 0.f;
+  }
+
+  if (!m_popups.empty())
+  {
+    for (auto &p : m_popups)
+    {
+      p.timer -= dt;
+      p.pos.y -= dt * 6.f;
+    }
+    m_popups.erase(
+        std::remove_if(m_popups.begin(), m_popups.end(),
+                       [](const PopupText &p)
+                       { return p.timer <= 0.f; }),
+        m_popups.end());
   }
 
   m_timeAccMs += static_cast<std::int64_t>(dt * 1000);
@@ -379,6 +447,19 @@ void BuilderScene::update(float dt)
     m_panelButton.loadImage("assets/ui/hammer.png");
     m_panelButton.setImageSize({20.f, 20.f});
     m_panelButton.setImageOffset({0.f, 0.f});
+  }
+
+  if (m_inventoryPanel.isOpen())
+  {
+    m_inventoryButton.loadImage("assets/ui/close.png");
+    m_inventoryButton.setImageSize({18.f, 18.f});
+    m_inventoryButton.setImageOffset({1.f, 1.f});
+  }
+  else
+  {
+    m_inventoryButton.loadImage("assets/ui/inventory.png");
+    m_inventoryButton.setImageSize({20.f, 20.f});
+    m_inventoryButton.setImageOffset({0.f, 0.f});
   }
 
   if (m_deletePromptVisible)
@@ -416,11 +497,69 @@ void BuilderScene::update(float dt)
 
   if (leftClick)
   {
+    if (m_sellPromptVisible)
+    {
+      if (m_sellPlus.contains(mouseUI))
+      {
+        const int maxQty = m_inventory.count(m_sellItemId);
+        m_sellQty = std::min(m_sellQty + 1, std::max(1, maxQty));
+        updateSellPrompt();
+        return;
+      }
+      if (m_sellMinus.contains(mouseUI))
+      {
+        m_sellQty = std::max(1, m_sellQty - 1);
+        updateSellPrompt();
+        return;
+      }
+      if (m_sellConfirm.contains(mouseUI))
+      {
+        if (m_inventory.remove(m_sellItemId, m_sellQty))
+        {
+          const int total = m_sellQty * m_sellPrice;
+          m_wallet.addMoney(total);
+          updateCurrencyUI();
+          m_inventoryPanel.refresh(m_inventory);
+          saveGame();
+          addPopup({m_uiView.getCenter().x, 18.f}, "+" + std::to_string(total), 2.0f);
+        }
+        m_sellPromptVisible = false;
+        return;
+      }
+      if (m_sellCancel.contains(mouseUI))
+      {
+        m_sellPromptVisible = false;
+        return;
+      }
+    }
+
+    if (m_inventoryButton.contains(mouseUI))
+    {
+      m_inventoryPanel.toggle();
+      if (m_inventoryPanel.isOpen())
+      {
+        if (m_panel.isOpen())
+          m_panel.toggle();
+        m_inventoryPanel.refresh(m_inventory);
+      }
+      return;
+    }
 
     if (m_panelButton.contains(mouseUI))
     {
       m_panel.toggle();
+      if (m_panel.isOpen() && m_inventoryPanel.isOpen())
+        m_inventoryPanel.toggle();
       return;
+    }
+
+    if (m_inventoryPanel.isOpen())
+    {
+      if (auto id = m_inventoryPanel.handleClick(mouseUI))
+      {
+        showSellPrompt(mouseUI, *id);
+        return;
+      }
     }
 
     if (m_panel.handleClick(mouseUI))
@@ -451,9 +590,6 @@ void BuilderScene::update(float dt)
     }
   }
 
-  // =========================
-  // Crop menu handling
-  // =========================
   if (m_cropMenuVisible && leftClick)
   {
     bool clickedOnButton = false;
@@ -487,13 +623,26 @@ void BuilderScene::update(float dt)
   {
     auto *p = m_city.getPlaceableAt(m_hoverTx, m_hoverTy);
     if (!p)
-      return;
+    {
+      for (const auto &obj : m_city.objects())
+      {
+        const float left = obj->x * cfg::TileSize;
+        const float top = obj->y * cfg::TileSize;
+        const float right = (obj->x + obj->w) * cfg::TileSize;
+        const float bottom = (obj->y + obj->h) * cfg::TileSize;
+        if (mouseWorld.x >= left && mouseWorld.x < right &&
+            mouseWorld.y >= top && mouseWorld.y < bottom)
+        {
+          p = obj.get();
+          break;
+        }
+      }
+    }
 
-    // =========================
-    // RIGHT CLICK → UPGRADE
-    // =========================
     if (rightClick)
     {
+        if (!p)
+          return;
         if (p->canUpgrade(m_city))
         {
             showUpgradePrompt(mouseUI, p);
@@ -505,39 +654,114 @@ void BuilderScene::update(float dt)
         return;
     }
     
-    // =========================
-    // LEFT CLICK → COLLECT / INTERACT
-    // =========================
     if (leftClick)
     {
-      if (auto *mp = dynamic_cast<MoneyProducer *>(p))
+      if (p)
       {
-        const int collected = mp->collect();
-        if (collected > 0)
+        if (auto *c = dynamic_cast<Collectable *>(p))
         {
-          m_wallet.addMoney(collected);
-          updateCurrencyUI();
-          saveGame();
+          CollectResult r = c->collect();
+          bool didCollect = false;
+          if (r.money > 0)
+          {
+            m_wallet.addMoney(r.money);
+            if (!r.popupText.empty())
+              addPopup({(p->x + p->w * 0.5f) * cfg::TileSize,
+                        (p->y * cfg::TileSize) - 6.f},
+                       r.popupText, 2.0f);
+            updateCurrencyUI();
+            saveGame();
+            didCollect = true;
+          }
+          if (!r.itemId.empty() && r.itemCount > 0)
+          {
+            m_inventory.add(r.itemId, r.itemCount);
+            m_inventoryPanel.refresh(m_inventory);
+            saveGame();
+            if (auto *cf = dynamic_cast<CropField *>(p))
+            {
+              if (cf->crop() == nullptr)
+              {
+                m_activeTool = BuildTool::None;
+                m_ghost.reset();
+                m_selectedCropField = p;
+                m_cropMenuVisible = true;
+                positionCropMenu(mouseUI);
+              }
+            }
+            didCollect = true;
+          }
+          if (didCollect)
+            return;
         }
-        return;
+
+        if (auto *cf = dynamic_cast<CropField *>(p))
+        {
+          if (cf->crop() == nullptr)
+          {
+            m_activeTool = BuildTool::None;
+            m_ghost.reset();
+            m_selectedCropField = p;
+            m_cropMenuVisible = true;
+            positionCropMenu(mouseUI);
+          }
+          return;
+        }
       }
 
-      if (auto *cf = dynamic_cast<CropField *>(p))
+      for (const auto &obj : m_city.objects())
       {
-        if (cf->crop() == nullptr)
+        auto *cObj = dynamic_cast<Collectable *>(obj.get());
+        if (!cObj || !cObj->canCollect())
+          continue;
+        auto *pl = dynamic_cast<Placeable *>(obj.get());
+        if (!pl)
+          continue;
+
+        const auto it = m_collectIcons.find(cObj->collectIconId());
+        if (it == m_collectIcons.end())
+          continue;
+
+        const float iconSize = 8.f;
+        const float cx = (pl->x + pl->w * 0.5f) * cfg::TileSize - iconSize * 0.5f;
+        const float cy = (pl->y * cfg::TileSize) - 10.f;
+        const sf::FloatRect bounds{{cx, cy}, {iconSize, iconSize}};
+        if (bounds.contains(mouseWorld))
         {
-          m_selectedCropField = p;
-          m_cropMenuVisible = true;
-          positionCropMenu(mouseUI);
+          CollectResult r = cObj->collect();
+          if (r.money > 0)
+          {
+            m_wallet.addMoney(r.money);
+            if (!r.popupText.empty())
+              addPopup({(pl->x + pl->w * 0.5f) * cfg::TileSize,
+                        (pl->y * cfg::TileSize) - 6.f},
+                       r.popupText, 2.0f);
+            updateCurrencyUI();
+            saveGame();
+          }
+          if (!r.itemId.empty() && r.itemCount > 0)
+          {
+            m_inventory.add(r.itemId, r.itemCount);
+            m_inventoryPanel.refresh(m_inventory);
+            saveGame();
+            if (auto *cf = dynamic_cast<CropField *>(pl))
+            {
+              if (cf->crop() == nullptr)
+              {
+                m_activeTool = BuildTool::None;
+                m_ghost.reset();
+                m_selectedCropField = pl;
+                m_cropMenuVisible = true;
+                positionCropMenu(mouseUI);
+              }
+            }
+          }
+          return;
         }
-        return;
       }
     }
   }
 
-  // =========================
-  // Long press delete prompt
-  // =========================
   if (!m_deletePromptVisible && leftDown &&
       m_activeTool == BuildTool::None && !m_cropMenuVisible)
   {
@@ -578,9 +802,6 @@ void BuilderScene::update(float dt)
     m_holdTime = 0.f;
   }
 
-  // =========================
-  // Ghost update (world)
-  // =========================
   if (m_ghost)
   {
     m_ghost->x = m_hoverTx;
@@ -588,9 +809,6 @@ void BuilderScene::update(float dt)
     m_canPlaceGhost = m_city.canPlace(*m_ghost);
   }
 
-  // =========================
-  // Place object (world)
-  // =========================
   if (leftClick && m_ghost && m_canPlaceGhost)
   {
     const Cost cost = m_ghost->cost();
@@ -628,7 +846,7 @@ void BuilderScene::saveGame()
   if (m_cityName.empty())
     return;
 
-  const GameState state = SaveSystem::buildState(m_cityName, m_city, m_wallet);
+  const GameState state = SaveSystem::buildState(m_cityName, m_city, m_wallet, m_inventory);
   SaveSystem::saveState(state);
 }
 
@@ -652,7 +870,6 @@ void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target
   m_deletePromptVisible = true;
   m_deleteTarget = target;
 
-  // 🔹 Decide mode: sell if it has value, otherwise delete
   const Cost sell = target->sellValue();
   if (sell.amount > 0)
   {
@@ -692,27 +909,125 @@ void BuilderScene::showDeletePrompt(const sf::Vector2f &uiPos, Placeable *target
   m_deleteNo.setTextOffset({18.f, 5.f});
 }
 
+void BuilderScene::addPopup(const sf::Vector2f &worldPos, const std::string &text, float seconds)
+{
+  PopupText p{sf::Text(m_uiFont, text, 9), worldPos, seconds};
+  p.text.setFillColor(sf::Color(255, 230, 180));
+  const sf::FloatRect bounds = p.text.getLocalBounds();
+  p.text.setOrigin({bounds.position.x + bounds.size.x * 0.5f,
+                    bounds.position.y + bounds.size.y * 0.5f});
+  m_popups.push_back(p);
+}
+
+void BuilderScene::showSellPrompt(const sf::Vector2f &uiPos, const std::string &itemId)
+{
+  const auto *info = CropRegistry::find(itemId);
+  if (!info)
+    return;
+
+  m_sellItemId = itemId;
+  m_sellPrice = info->sellValue;
+  m_sellQty = std::max(1, std::min(m_inventory.count(itemId), 1));
+  m_sellPromptVisible = true;
+
+  const sf::Vector2f viewSize = m_uiView.getSize();
+  const sf::Vector2f bgSize = m_sellBg.getSize();
+  sf::Vector2f pos = uiPos + sf::Vector2f{8.f, 8.f};
+  pos.x = std::clamp(pos.x, 6.f, viewSize.x - bgSize.x - 6.f);
+  pos.y = std::clamp(pos.y, 6.f, viewSize.y - bgSize.y - 6.f);
+  m_sellBg.setPosition(pos);
+
+  m_sellTitle.setString(info->label);
+  m_sellTitle.setPosition({std::floor(pos.x + 8.f), std::floor(pos.y + 6.f)});
+
+  const float rowY = pos.y + 24.f;
+  m_sellMinus = PanelButton(sf::Vector2f{18.f, 18.f}, {std::floor(pos.x + 8.f), std::floor(rowY)});
+  m_sellPlus = PanelButton(sf::Vector2f{18.f, 18.f}, {std::floor(pos.x + 32.f), std::floor(rowY)});
+
+  const float buttonsY = pos.y + 46.f;
+  m_sellConfirm = PanelButton(sf::Vector2f{70.f, 18.f}, {std::floor(pos.x + 8.f), std::floor(buttonsY)});
+  m_sellCancel = PanelButton(sf::Vector2f{70.f, 18.f}, {std::floor(pos.x + 98.f), std::floor(buttonsY)});
+
+  m_sellPlus.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellMinus.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellConfirm.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellCancel.setOutline(sf::Color(120, 80, 85), 1.f);
+  m_sellPlus.setText(m_uiFont, "+", 10, sf::Color::Black);
+  m_sellMinus.setText(m_uiFont, "-", 10, sf::Color::Black);
+  m_sellConfirm.setText(m_uiFont, "Confirm", 7, sf::Color::Black);
+  m_sellCancel.setText(m_uiFont, "Cancel", 7, sf::Color::Black);
+  m_sellPlus.setTextOffset({6.f, 3.f});
+  m_sellMinus.setTextOffset({6.f, 3.f});
+  m_sellConfirm.setTextOffset({10.f, 5.f});
+  m_sellCancel.setTextOffset({10.f, 5.f});
+
+  updateSellPrompt();
+}
+
+void BuilderScene::updateSellPrompt()
+{
+  const int maxQty = std::max(1, m_inventory.count(m_sellItemId));
+  m_sellQty = std::clamp(m_sellQty, 1, maxQty);
+  const int total = m_sellQty * m_sellPrice;
+
+  m_sellQtyText.setString("Qty: " + std::to_string(m_sellQty));
+  m_sellPriceText.setString("Total: $" + std::to_string(total));
+
+  const sf::Vector2f pos = m_sellBg.getPosition();
+  m_sellQtyText.setPosition({std::floor(pos.x + 60.f), std::floor(pos.y + 28.f)});
+  m_sellPriceText.setPosition({std::floor(pos.x + 60.f), std::floor(pos.y + 38.f)});
+}
+
 void BuilderScene::render(sf::RenderTarget &target)
 {
   m_camera.apply(target);
 
-  // tiles
   m_renderer.drawTiles(target, m_city);
 
-  // placed objects
   for (const auto &obj : m_city.objects())
     obj->render(target, m_uiFont);
 
-  // ghost
+  const float iconSize = 8.f;
+  for (const auto &obj : m_city.objects())
+  {
+    auto *cObj = dynamic_cast<Collectable *>(obj.get());
+    if (!cObj || !cObj->canCollect())
+      continue;
+    auto *pl = dynamic_cast<Placeable *>(obj.get());
+    if (!pl)
+      continue;
+
+    auto it = m_collectIcons.find(cObj->collectIconId());
+    if (it == m_collectIcons.end())
+      continue;
+
+    sf::Sprite icon(it->second);
+    const float scale =
+        iconSize / static_cast<float>(std::max(it->second.getSize().x, it->second.getSize().y));
+    icon.setScale({scale, scale});
+
+    const float cx = (pl->x + pl->w * 0.5f) * cfg::TileSize - iconSize * 0.5f;
+    const float cy = (pl->y * cfg::TileSize) - 10.f;
+    icon.setPosition({cx, cy});
+    target.draw(icon);
+  }
+
+  for (auto &p : m_popups)
+  {
+    p.text.setPosition(p.pos);
+    target.draw(p.text);
+  }
+
   if (m_ghost)
   {
     m_ghost->renderGhost(target, m_canPlaceGhost);
   }
 
-  // UI
   target.setView(m_uiView);
   m_panel.render(target);
+  m_inventoryPanel.render(target);
   m_panelButton.draw(target);
+  m_inventoryButton.draw(target);
   target.draw(m_coinSprite);
   target.draw(m_diamondSprite);
   target.draw(m_moneyText);
@@ -740,6 +1055,18 @@ void BuilderScene::render(sf::RenderTarget &target)
       target.draw(*m_deleteLabel);
     m_deleteYes.draw(target);
     m_deleteNo.draw(target);
+  }
+
+  if (m_sellPromptVisible)
+  {
+    target.draw(m_sellBg);
+    target.draw(m_sellTitle);
+    target.draw(m_sellQtyText);
+    target.draw(m_sellPriceText);
+    m_sellPlus.draw(target);
+    m_sellMinus.draw(target);
+    m_sellConfirm.draw(target);
+    m_sellCancel.draw(target);
   }
 
   if (m_upgradePromptVisible)

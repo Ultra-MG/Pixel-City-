@@ -15,6 +15,7 @@ public:
     virtual int growthTime() const = 0;
     virtual int value() const = 0;
     virtual const char *typeName() const = 0;
+    virtual const char *iconPath() const = 0;
 
     virtual void saveTo(std::unordered_map<std::string, std::string>& out) const
     {

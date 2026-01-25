@@ -3,6 +3,7 @@
 #include "world/CropFactory.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include <iostream>
+#include <string>
 
 sf::Texture CropField::s_texture;
 
@@ -54,13 +55,51 @@ void CropField::renderGhost(sf::RenderTarget &target, bool valid) const
 void CropField::plantCrop(Crop* crop)
 {
     if (!m_crop)
+    {
         m_crop = crop;
+        m_growthSeconds = 0.f;
+    }
 }
 
 void CropField::harvest()
 {
     delete m_crop;
     m_crop = nullptr;
+    m_growthSeconds = 0.f;
+}
+
+void CropField::update(float dt)
+{
+    if (!m_crop)
+        return;
+
+    m_growthSeconds += dt;
+}
+
+bool CropField::canCollect() const
+{
+    if (!m_crop)
+        return false;
+    return m_growthSeconds >= static_cast<float>(m_crop->growthTime());
+}
+
+CollectResult CropField::collect()
+{
+    if (!canCollect())
+        return {};
+
+    CollectResult r;
+    r.itemId = m_crop->typeName();
+    r.itemCount = 1;
+    harvest();
+    return r;
+}
+
+std::string CropField::collectIconId() const
+{
+    if (!m_crop)
+        return "";
+    return m_crop->typeName();
 }
 
 void CropField::saveTo(PlacedObject& out) const
@@ -68,7 +107,10 @@ void CropField::saveTo(PlacedObject& out) const
     Infrastructure::saveTo(out);
 
     if (m_crop)
+    {
         m_crop->saveTo(out.data);
+        out.data["crop_growth"] = std::to_string(static_cast<int>(m_growthSeconds));
+    }
     std::cout<<"Saved crop field with crop type: "
              << (m_crop ? m_crop->typeName() : "none") << "\n";
 }
@@ -82,6 +124,9 @@ void CropField::loadFrom(const PlacedObject& in)
         return;
 
     m_crop = CropFactory::create(it->second);
-    std::cout<<"Loaded crop field with crop type: "
-             << (m_crop ? m_crop->typeName() : "none") << "\n";
+    auto growIt = in.data.find("crop_growth");
+    if (growIt != in.data.end())
+        m_growthSeconds = std::stof(growIt->second);
+    else
+        m_growthSeconds = 0.f;
 }

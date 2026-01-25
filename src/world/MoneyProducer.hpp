@@ -1,8 +1,11 @@
 // world/MoneyProducer.hpp (MODIFIED)
 #pragma once
 #include <cstdint>
+#include <algorithm>
+#include <string>
+#include "world/Collectable.hpp"
 
-class MoneyProducer
+class MoneyProducer : public Collectable
 {
 public:
     virtual ~MoneyProducer() = default;
@@ -15,6 +18,12 @@ public:
 
     virtual int baseStorage() const { return 0; }
     virtual int storagePerLevel() const { return 0; }
+    virtual int collectThreshold() const { return 10; }
+
+    bool canCollect() const override
+    {
+        return storedMoney() >= collectThreshold();
+    }
 
     virtual void tick(std::int64_t seconds)
     {
@@ -30,11 +39,18 @@ public:
         }
     }
 
-    int collect()
+    CollectResult collect() override
     {
+        if (!canCollect())
+            return {};
         const int v = storedMoney();
         setStoredMoney(0);
-        return v;
+        return CollectResult{v, "", 0, "+" + std::to_string(v)};
+    }
+
+    std::string collectIconId() const override
+    {
+        return "coin";
     }
 
     virtual void applyOffline(std::int64_t seconds)

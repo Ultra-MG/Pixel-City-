@@ -102,5 +102,5 @@ void TownHall::render(sf::RenderTarget &target, const sf::Font &font) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
     target.draw(s);
 
-    drawCoinBadge(*this, target, font, m_storedMoney);
+    // coin indicator handled globally
 }

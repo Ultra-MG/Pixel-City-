@@ -73,7 +73,7 @@ void Farm::tick(std::int64_t seconds)
 
 int Farm::collectMoney()
 {
-    return collect();
+    return collect().money;
 }
 void Farm::saveTo(PlacedObject &out) const
 {
@@ -105,7 +105,7 @@ void Farm::render(sf::RenderTarget &target, const sf::Font &font) const
 
     target.draw(s);
 
-    drawCoinBadge(*this,target,font,m_storedMoney);
+    // coin indicator handled globally
 }
 int Farm::effectiveMaxLevel(const City& city) const
 {

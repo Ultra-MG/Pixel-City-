@@ -83,7 +83,7 @@ void Store::tick(std::int64_t seconds)
 
 int Store::collectMoney()
 {
-    return collect();
+    return collect().money;
 }
 
 // ===== Save / Load =====
@@ -120,7 +120,7 @@ void Store::render(sf::RenderTarget &target, const sf::Font &font) const
 
     target.draw(s);
 
-    drawCoinBadge(*this, target, font, m_storedMoney);
+    // coin indicator handled globally
 }
 
 void Store::renderGhost(sf::RenderTarget &target, bool valid) const
