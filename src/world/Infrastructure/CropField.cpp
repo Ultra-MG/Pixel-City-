@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <iostream>
 #include <string>
+#include "game/Wallet.hpp"
 
 sf::Texture CropField::s_texture;
 
@@ -24,14 +25,12 @@ bool CropField::canBePlaced(const City &) const
     return true;
 }
 
-void CropField::render(sf::RenderTarget &target, const sf::Font& font) const
+void CropField::render(sf::RenderTarget &target, const sf::Font &font) const
 {
     sf::Sprite s(s_texture);
     s.setPosition({float(x * cfg::TileSize), float(y * cfg::TileSize)});
-    s.setScale({
-        float(cfg::TileSize) / s_texture.getSize().x,
-        float(cfg::TileSize) / s_texture.getSize().y
-    });
+    s.setScale({float(cfg::TileSize) / s_texture.getSize().x,
+                float(cfg::TileSize) / s_texture.getSize().y});
     target.draw(s);
 
     if (m_crop)
@@ -42,19 +41,27 @@ void CropField::renderGhost(sf::RenderTarget &target, bool valid) const
 {
     sf::Sprite s(s_texture);
     s.setPosition({float(x * cfg::TileSize), float(y * cfg::TileSize)});
-    s.setScale({
-        float(cfg::TileSize) / s_texture.getSize().x,
-        float(cfg::TileSize) / s_texture.getSize().y
-    });
-    s.setColor(valid ? sf::Color(200,255,200,180)
-                     : sf::Color(255,0,0,180));
+    s.setScale({float(cfg::TileSize) / s_texture.getSize().x,
+                float(cfg::TileSize) / s_texture.getSize().y});
+    s.setColor(valid ? sf::Color(200, 255, 200, 180)
+                     : sf::Color(255, 0, 0, 180));
     target.draw(s);
 }
 
-void CropField::plantCrop(Crop* crop)
+void CropField::plantCrop(Crop *crop, Wallet& wallet)
 {
-    if (!m_crop)
+    if (!m_crop && crop)
     {
+        const Cost c = crop->cost();
+        if (c.amount > 0)
+        {
+            if (!wallet.spend(c))
+            {
+                delete crop;
+                return;
+            }
+        }
+
         m_crop = crop;
         m_growthSeconds = 0.f;
     }
@@ -101,7 +108,7 @@ std::string CropField::collectIconId() const
     return m_crop->typeName();
 }
 
-void CropField::saveTo(PlacedObject& out) const
+void CropField::saveTo(PlacedObject &out) const
 {
     Infrastructure::saveTo(out);
 
@@ -110,11 +117,11 @@ void CropField::saveTo(PlacedObject& out) const
         m_crop->saveTo(out.data);
         out.data["crop_growth"] = std::to_string(static_cast<int>(m_growthSeconds));
     }
-    std::cout<<"Saved crop field with crop type: "
-             << (m_crop ? m_crop->typeName() : "none") << "\n";
+    std::cout << "Saved crop field with crop type: "
+              << (m_crop ? m_crop->typeName() : "none") << "\n";
 }
 
-void CropField::loadFrom(const PlacedObject& in)
+void CropField::loadFrom(const PlacedObject &in)
 {
     Infrastructure::loadFrom(in);
 

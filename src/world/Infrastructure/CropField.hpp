@@ -5,6 +5,7 @@
 #include "core/Config.hpp" 
 #include <SFML/Graphics/Texture.hpp>
 
+class Wallet;
 class CropField : public Infrastructure, public Collectable {
 public:
     CropField(int tx, int ty);
@@ -17,7 +18,7 @@ public:
     void render(sf::RenderTarget& target, const sf::Font& font) const override;
     void renderGhost(sf::RenderTarget& target, bool valid) const override;
 
-    void plantCrop(Crop* crop);
+    void plantCrop(Crop* crop, Wallet& m_wallet);
     void harvest();
     const Crop* crop() const { return m_crop; }
     void update(float dt) override;

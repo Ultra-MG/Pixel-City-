@@ -230,7 +230,6 @@ void LoadGameScreen::handleEvent(const sf::Event &e)
     }
 }
 
-
 void LoadGameScreen::update(float)
 {
 }
@@ -240,6 +239,9 @@ void LoadGameScreen::render(sf::RenderTarget &target)
     target.setView(m_uiView);
     if (m_bgSprite)
         target.draw(*m_bgSprite);
+    target.draw(m_backBtn);
+    if (m_backText)
+        target.draw(*m_backText);
     if (m_emptyLabel)
     {
         target.draw(*m_emptyLabel);
@@ -255,8 +257,4 @@ void LoadGameScreen::render(sf::RenderTarget &target)
         target.draw(d);
     for (auto &t : m_deleteTexts)
         target.draw(t);
-
-    target.draw(m_backBtn);
-    if (m_backText)
-        target.draw(*m_backText);
 }

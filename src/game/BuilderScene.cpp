@@ -622,7 +622,7 @@ void BuilderScene::update(float dt)
       {
         if (m_selectedCropField)
         {
-          static_cast<CropField *>(m_selectedCropField)->plantCrop(m_cropTypes[i].create());
+          static_cast<CropField *>(m_selectedCropField)->plantCrop(m_cropTypes[i].create(),m_wallet);
           m_cropMenuVisible = false;
           m_selectedCropField = nullptr;
           saveGame();
