@@ -9,7 +9,7 @@
 
 #include "game/BuildTool.hpp"
 #include "game/SidePanel.hpp"
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 #include "game/SaveSystem.hpp"
 #include "world/MoneyProducer.hpp"
 #include "game/Inventory.hpp"
@@ -27,6 +27,7 @@
 #include "ui/PanelButton.hpp"
 #include <unordered_map>
 
+class SceneManager;
 struct CropType
 {
   std::string name;
@@ -44,6 +45,7 @@ class BuilderScene : public Scene
 {
 public:
   BuilderScene(sf::RenderWindow &window,
+               SceneManager &scenes,
                float internalW,
                float internalH,
                int tileSize,
@@ -56,7 +58,7 @@ public:
   void render(sf::RenderTarget &target) override;
 
 private:
-  // --- Core ---
+  SceneManager &m_scenes;
   sf::RenderWindow &m_window;
   Button m_panelButton;
   Button m_inventoryButton;
@@ -65,7 +67,6 @@ private:
   Camera2D m_camera;
   BuildTool m_activeTool = BuildTool::None;
 
-  // --- World ---
   City m_city;
   TilemapRenderer m_renderer;
 
@@ -75,7 +76,6 @@ private:
   std::unique_ptr<Placeable> m_ghost;
   bool m_canPlaceGhost = false;
 
-  // --- Crop Menu ---
   std::vector<CropType> m_cropTypes;
   std::vector<Button> m_cropButtons;
   std::vector<sf::Text> m_cropLabels;
@@ -84,7 +84,6 @@ private:
   Placeable *m_selectedCropField = nullptr;
   bool m_cropMenuVisible = false;
 
-  // --- Upgrade Prompt ---
   bool m_upgradePromptVisible = false;
   Placeable *m_upgradeTarget = nullptr;
   sf::RectangleShape m_upgradeBg;
@@ -93,7 +92,6 @@ private:
   PanelButton m_upgradeNo;
   void showUpgradePrompt(const sf::Vector2f &uiPos, Placeable *p);
 
-  // --- UI ---
   sf::View m_uiView;
   sf::Text m_moneyText;
   sf::Text m_diamondText;
@@ -147,7 +145,9 @@ private:
   EconomySystem m_economy;
   DeleteMode m_deleteMode = DeleteMode::Delete;
 
-  // --- Helpers ---
+  sf::RectangleShape m_exitBtn;
+  std::optional<sf::Text> m_exitText;
+
   sf::Vector2f windowMouseToInternal() const;
   void updateHoverTile();
   void positionCropMenu(const sf::Vector2f &uiPos);
@@ -166,4 +166,5 @@ private:
   void showSellPrompt(const sf::Vector2f &uiPos, const std::string &itemId);
   void updateSellPrompt();
   void restoreState(const std::optional<GameState> &state);
+  void createExitButton();
 };

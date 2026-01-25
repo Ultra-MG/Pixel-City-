@@ -1,4 +1,3 @@
-// world/Saveable.hpp
 #pragma once
 #include "game/SaveTypes.hpp"
 

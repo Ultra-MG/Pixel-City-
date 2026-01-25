@@ -32,7 +32,7 @@ sf::RenderTarget& PixelRenderer::target() {
 void PixelRenderer::endAndPresent(sf::RenderTarget& window) {
   m_lowRes.display();
 
-  window.setView(window.getDefaultView()); // ← THIS WAS MISSING
+  window.setView(window.getDefaultView());
   window.draw(m_present);
 }
 

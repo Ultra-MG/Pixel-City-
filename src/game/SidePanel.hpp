@@ -7,24 +7,27 @@
 #include "game/BuildTool.hpp"
 #include "game/BuildCatalog.hpp"
 
-class SidePanel {
+class SidePanel
+{
 public:
     SidePanel(float collapsedW, float expandedW, float height);
 
     void toggle();
-    void update(const sf::Vector2f& mouse);
-    bool handleClick(const sf::Vector2f& mouse);
-    void render(sf::RenderTarget& target);
+    void update(const sf::Vector2f &mouse);
+    bool handleClick(const sf::Vector2f &mouse);
+    void render(sf::RenderTarget &target);
 
     BuildTool selectedTool() const { return m_selected; }
     bool isOpen() const { return m_open; }
 
 private:
-    enum class Page {
+    enum class Page
+    {
         Categories,
         Entries
     };
 
+    void initPanel();
     void rebuildButtons();
 
     float m_collapsedW = 0.f;

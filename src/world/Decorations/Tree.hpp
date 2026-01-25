@@ -1,4 +1,3 @@
-// world/Decorations/Tree.hpp
 #pragma once
 
 #include "world/Decoration.hpp"

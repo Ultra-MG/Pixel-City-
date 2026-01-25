@@ -40,6 +40,22 @@ NameEntryScreen::NameEntryScreen(sf::RenderWindow &window,
     m_inputBox.setOutlineThickness(1.f);
     m_inputBox.setPosition({internalW * 0.5f - 90.f, internalH * 0.48f});
 
+    m_backBtn.setSize({60.f, 18.f});
+    m_backBtn.setFillColor(sf::Color(30, 30, 30, 220));
+    m_backBtn.setOutlineColor(sf::Color(120, 80, 85));
+    m_backBtn.setOutlineThickness(1.f);
+    m_backBtn.setPosition({8.f, 8.f});
+
+    m_backText.emplace(m_font, "Back", 10);
+    m_backText->setFillColor(sf::Color(245, 240, 220));
+
+    const sf::FloatRect bb = m_backText->getLocalBounds();
+    m_backText->setOrigin({bb.position.x + bb.size.x * 0.5f,
+                           bb.position.y + bb.size.y * 0.5f});
+
+    m_backText->setPosition({m_backBtn.getPosition().x + m_backBtn.getSize().x * 0.5f,
+                             m_backBtn.getPosition().y + m_backBtn.getSize().y * 0.5f});
+
     m_bgTexture.emplace();
     if (!m_bgTexture->loadFromFile("assets/pixelcity.png"))
     {
@@ -56,10 +72,37 @@ NameEntryScreen::NameEntryScreen(sf::RenderWindow &window,
     }
 
     refreshText();
+
+    m_errorText.emplace(m_font, "Maximum saves reached.\nDelete a save first.", 10);
+    m_errorText->setFillColor(sf::Color(255, 120, 120));
+
+    const sf::FloatRect eb = m_errorText->getLocalBounds();
+    m_errorText->setOrigin({eb.position.x + eb.size.x * 0.5f,
+                            eb.position.y + eb.size.y * 0.5f});
+    m_errorText->setPosition({internalW * 0.5f, internalH * 0.62f});
 }
 
 void NameEntryScreen::handleEvent(const sf::Event &e)
 {
+
+    if (const auto *mouse = e.getIf<sf::Event::MouseButtonPressed>())
+    {
+        const sf::Vector2f pos =
+            m_window.mapPixelToCoords(
+                sf::Mouse::getPosition(m_window), m_uiView);
+
+        if (m_backBtn.getGlobalBounds().contains(pos))
+        {
+            m_scenes.set(std::make_unique<MainMenuScreen>(
+                m_window,
+                m_scenes,
+                static_cast<float>(cfg::InternalW),
+                static_cast<float>(cfg::InternalH),
+                cfg::TileSize));
+            return;
+        }
+    }
+
     if (const auto *text = e.getIf<sf::Event::TextEntered>())
     {
         const std::uint32_t code = text->unicode;
@@ -89,11 +132,20 @@ void NameEntryScreen::handleEvent(const sf::Event &e)
                 cfg::TileSize));
             return;
         }
+
         if (key->code == sf::Keyboard::Key::Enter)
         {
+            if (SaveSystem::listSaves().size() >= 5)
+            {
+                m_errorTimer = 2.5f;
+                return;
+            }
+
             const std::string name = m_name.empty() ? "New City" : m_name;
+
             m_scenes.set(std::make_unique<BuilderScene>(
                 m_window,
+                m_scenes,
                 static_cast<float>(cfg::InternalW),
                 static_cast<float>(cfg::InternalH),
                 cfg::TileSize,
@@ -112,6 +164,10 @@ void NameEntryScreen::update(float dt)
         m_showCursor = !m_showCursor;
         refreshText();
     }
+    if (m_errorTimer > 0.f)
+    {
+        m_errorTimer -= dt;
+    }
 }
 
 void NameEntryScreen::render(sf::RenderTarget &target)
@@ -124,6 +180,11 @@ void NameEntryScreen::render(sf::RenderTarget &target)
     target.draw(m_inputBox);
     if (m_input)
         target.draw(*m_input);
+    target.draw(m_backBtn);
+    if (m_backText)
+        target.draw(*m_backText);
+    if (m_errorTimer > 0.f && m_errorText)
+        target.draw(*m_errorText);
 }
 
 void NameEntryScreen::refreshText()

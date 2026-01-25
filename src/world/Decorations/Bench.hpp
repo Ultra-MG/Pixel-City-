@@ -1,4 +1,3 @@
-// world/Decorations/Bench.hpp
 #pragma once
 
 #include "world/Decoration.hpp"

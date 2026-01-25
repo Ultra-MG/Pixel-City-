@@ -19,8 +19,8 @@ public:
     void render(sf::RenderTarget &target);
 
 private:
+    void initInventoryPanel();
     void rebuild(const Inventory &inv);
-
     float m_collapsedW = 0.f;
     float m_expandedW = 0.f;
     float m_height = 0.f;

@@ -1,4 +1,3 @@
-// world/Crop.hpp  (MODIFIED)
 #pragma once
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "game/Cost.hpp"

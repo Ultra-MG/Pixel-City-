@@ -1,4 +1,3 @@
-// world/Road.hpp
 #pragma once
 
 #include "world/Placeable.hpp"

@@ -22,6 +22,12 @@ public:
 private:
     void refreshText();
 
+    sf::RectangleShape m_backBtn;
+    std::optional<sf::Text> m_backText;
+
+    std::optional<sf::Text> m_errorText;
+    float m_errorTimer = 0.f;
+
     sf::RenderWindow &m_window;
     SceneManager &m_scenes;
     sf::View m_uiView;

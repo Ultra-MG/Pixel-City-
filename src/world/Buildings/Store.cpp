@@ -1,6 +1,6 @@
-// world/Buildings/Store.cpp
 #include "world/Buildings/Store.hpp"
 #include "game/EconomySystem.hpp"
+#include "game/Inventory.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include "core/Config.hpp"
 
@@ -41,7 +41,6 @@ bool Store::canBePlaced(const City &) const
     return true;
 }
 
-// ===== MoneyProducer =====
 
 int Store::moneyPerMinute() const
 {
@@ -71,22 +70,20 @@ void Store::setStoredMoney(int v)
     m_storedMoney = v;
 }
 
-void Store::applyOffline(std::int64_t seconds)
+void Store::applyOffline(std::int64_t seconds, Inventory& inventory)
 {
-    MoneyProducer::applyOffline(seconds);
+    MoneyProducer::applyOffline(seconds,inventory);
 }
 
-void Store::tick(std::int64_t seconds)
+void Store::tick(std::int64_t seconds,Inventory& inventory)
 {
-    MoneyProducer::tick(seconds);
+    MoneyProducer::tick(seconds, inventory);
 }
 
 int Store::collectMoney()
 {
     return collect().money;
 }
-
-// ===== Save / Load =====
 
 void Store::saveTo(PlacedObject &out) const
 {
@@ -105,8 +102,6 @@ void Store::loadFrom(const PlacedObject &in)
         m_storedMoney = 0;
 }
 
-// ===== Rendering =====
-
 void Store::render(sf::RenderTarget &target, const sf::Font &font) const
 {
     drawLevelBadge(*this, target, font);
@@ -119,8 +114,6 @@ void Store::render(sf::RenderTarget &target, const sf::Font &font) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
 
     target.draw(s);
-
-    // coin indicator handled globally
 }
 
 void Store::renderGhost(sf::RenderTarget &target, bool valid) const

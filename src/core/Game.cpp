@@ -8,6 +8,7 @@
 #include "world/Buildings/House.hpp"
 #include "world/Buildings/Farm.hpp"
 #include "world/Buildings/Store.hpp"
+#include "world/Buildings/Bakery.hpp"
 #include "world/Buildings/TownHall.hpp"
 #include "world/Infrastructure/Road.hpp"
 #include "world/Infrastructure/Water.hpp"
@@ -25,6 +26,12 @@ Game::Game()
           sf::Style::Titlebar | sf::Style::Close),
       m_pixel(cfg::InternalW, cfg::InternalH, cfg::Scale)
 {
+  createSplashScreen();
+  registerTools();
+}
+
+void Game::createSplashScreen()
+{
   m_window.setVerticalSyncEnabled(true);
 
   m_scenes.set(std::make_unique<SplashScreen>(
@@ -33,6 +40,10 @@ Game::Game()
       static_cast<float>(cfg::InternalW),
       static_cast<float>(cfg::InternalH),
       cfg::TileSize));
+}
+
+void Game::registerTools()
+{
   auto &factory = BuildToolFactory::instance();
 
   factory.registerTool(BuildTool::PlaceHouse,
@@ -79,6 +90,10 @@ Game::Game()
   factory.registerTool(BuildTool::PlaceLampPost,
                        [](int x, int y)
                        { return std::make_unique<LampPost>(x, y); });
+
+  factory.registerTool(BuildTool::PlaceBakery,
+                       [](int x, int y)
+                       { return std::make_unique<Bakery>(x, y); });
 }
 
 void Game::run()

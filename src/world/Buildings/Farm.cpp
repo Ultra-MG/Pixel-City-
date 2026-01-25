@@ -1,5 +1,6 @@
 #include "world/Buildings/Farm.hpp"
 #include <SFML/Graphics/Sprite.hpp>
+#include "game/Inventory.hpp"
 #include "core/Config.hpp"
 
 sf::Texture Farm::s_texture;
@@ -61,14 +62,14 @@ void Farm::setStoredMoney(int v)
     m_storedMoney = v;
 }
 
-void Farm::applyOffline(std::int64_t seconds)
+void Farm::applyOffline(std::int64_t seconds,Inventory& inventory)
 {
-    MoneyProducer::applyOffline(seconds);
+    MoneyProducer::applyOffline(seconds,inventory);
 }
 
-void Farm::tick(std::int64_t seconds)
+void Farm::tick(std::int64_t seconds , Inventory& inventory)
 {
-    MoneyProducer::tick(seconds);
+    MoneyProducer::tick(seconds,inventory);
 }
 
 int Farm::collectMoney()
@@ -105,7 +106,6 @@ void Farm::render(sf::RenderTarget &target, const sf::Font &font) const
 
     target.draw(s);
 
-    // coin indicator handled globally
 }
 int Farm::effectiveMaxLevel(const City& city) const
 {

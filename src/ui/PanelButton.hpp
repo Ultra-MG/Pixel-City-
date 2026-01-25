@@ -7,7 +7,7 @@
 class PanelButton : public Button
 {
 public:
-    using Button::Button; // reuse constructors
+    using Button::Button;
 
     void setText(const sf::Font &font, const std::string &str, unsigned size , sf::Color color);
     void setTextOffset(sf::Vector2f offset);

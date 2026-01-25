@@ -20,7 +20,6 @@ public:
   void setTile(int x, int y, Tile t);
   bool isWater(int tx, int ty) const;
 
-  // GENERIC OBJECT ACCESS
   const std::vector<std::unique_ptr<Placeable>> &objects() const
   {
     return m_objects;

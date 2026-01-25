@@ -1,4 +1,3 @@
-// world/Infrastructure/CropField.hpp  (MODIFIED)
 #pragma once
 #include "world/Infrastructure.hpp"
 #include "world/Collectable.hpp"

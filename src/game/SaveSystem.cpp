@@ -1,9 +1,8 @@
-// game/save/SaveSystem.cpp
 #include "game/SaveSystem.hpp"
 #include "game/BuildToolFactory.hpp"
 #include "world/Buildings/TownHall.hpp"
 #include "world/City.hpp"
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 #include "game/Inventory.hpp"
 #include <filesystem>
 #include <fstream>
@@ -174,7 +173,7 @@ namespace SaveSystem
                 for (size_t i = 0; i < count; ++i)
                 {
                     PlacedObject po;
-                    in >> token; // OBJ
+                    in >> token;
                     int tool;
                     in >> tool >> po.x >> po.y;
                     po.tool = static_cast<BuildTool>(tool);
@@ -248,4 +247,13 @@ namespace SaveSystem
         return out.empty() ? "save" : out;
     }
 
+    bool deleteSave(const std::string &fileName)
+    {
+        const auto path = saveDir() / fileName;
+
+        if (!std::filesystem::exists(path))
+            return false;
+
+        return std::filesystem::remove(path);
+    }
 }

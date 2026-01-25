@@ -3,10 +3,20 @@
 
 void PanelButton::setText(const sf::Font& font,
                           const std::string& str,
-                          unsigned size , sf::Color color)
+                          unsigned int size,
+                          sf::Color color)
 {
     m_text.emplace(font, str, size);
     m_text->setFillColor(color);
+
+    const sf::FloatRect tb = m_text->getLocalBounds();
+    const sf::Vector2f  bs = m_bg.getSize();
+    const sf::Vector2f  bp = m_bg.getPosition();
+
+    m_text->setPosition({
+        bp.x + (bs.x - tb.size.x) * 0.5f - tb.position.x,
+        bp.y + (bs.y - tb.size.y) * 0.5f - tb.position.y
+    });
 }
 
 void PanelButton::setTextOffset(sf::Vector2f offset)

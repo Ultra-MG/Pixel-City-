@@ -1,4 +1,3 @@
-// world/Infrastructure/Water.cpp
 #include "world/Infrastructure/Water.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

@@ -1,4 +1,3 @@
-// world/Infrastructure/CropField.cpp  (MODIFIED)
 #include "world/Infrastructure/CropField.hpp"
 #include "world/CropFactory.hpp"
 #include <SFML/Graphics/Sprite.hpp>

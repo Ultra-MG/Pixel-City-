@@ -24,7 +24,7 @@ void Camera2D::setZoomClamp(float minZ, float maxZ) {
 }
 
 void Camera2D::zoom(float factor) {
-  float newZoom = m_zoom * factor; // factor > 1 = zoom in
+  float newZoom = m_zoom * factor; 
   newZoom = std::clamp(newZoom, m_minZoom, m_maxZoom);
 
   m_zoom = newZoom;

@@ -4,6 +4,7 @@
 #include "world/Buildings/Farm.hpp"
 #include "world/Buildings/Store.hpp"
 #include "world/Buildings/TownHall.hpp"
+#include "world/Buildings/Bakery.hpp"
 #include "world/Infrastructure/Road.hpp"
 #include "world/Infrastructure/Water.hpp"
 #include "world/Infrastructure/Bridge.hpp"
@@ -14,24 +15,26 @@
 #include "world/Crops/Potato.hpp"
 #include "world/CropRegistry.hpp"
 #include <cmath>
+#include "game/screens/MainMenuScreen.hpp"
 #include "world/Decorations/Fountain.hpp"
 #include "world/Decorations/Tree.hpp"
 #include "world/Decorations/Bench.hpp"
 #include "world/Decorations/LampPost.hpp"
 #include "game/BuildToolFactory.hpp"
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 #include "world/Building.hpp"
 #include <SFML/Window/Mouse.hpp>
 #include <stdexcept>
 #include <algorithm>
 
 BuilderScene::BuilderScene(sf::RenderWindow &window,
+                           SceneManager &scenes,
                            float internalW,
                            float internalH,
                            int tileSize,
                            const std::string &cityName,
                            const std::optional<GameState> &state)
-    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_sellTitle(m_uiFont, "", 10), m_sellQtyText(m_uiFont, "", 10), m_sellPriceText(m_uiFont, "", 10), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_inventoryPanel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet)
+    : m_window(window), m_upgradeText(m_uiFont, "", 8), m_sellTitle(m_uiFont, "", 10), m_sellQtyText(m_uiFont, "", 10), m_sellPriceText(m_uiFont, "", 10), m_camera(internalW, internalH), m_city(cfg::CityW, cfg::CityH), m_renderer(tileSize, "assets/grass.png"), m_panel(40.f, 160.f, internalH), m_inventoryPanel(40.f, 160.f, internalH), m_moneyText(m_uiFont, "0", 10), m_diamondText(m_uiFont, "0", 10), m_coinSprite(m_coinTexture), m_diamondSprite(m_diamondTexture), m_toastText(m_uiFont, "", 10), m_economy(m_wallet), m_scenes(scenes)
 {
 
   restoreState(state);
@@ -53,10 +56,29 @@ BuilderScene::BuilderScene(sf::RenderWindow &window,
   initCrops();
   initCurrencyUi();
   initPanelButton();
+  createExitButton();
   initInventoryPanel();
   updateCurrencyUI();
 
   saveGame();
+}
+
+void BuilderScene::createExitButton()
+{
+  m_exitBtn.setSize({20.f, 20.f});
+  m_exitBtn.setFillColor(sf::Color(30, 30, 30, 220));
+  m_exitBtn.setOutlineColor(sf::Color(120, 80, 85));
+  m_exitBtn.setOutlineThickness(1.f);
+  m_exitBtn.setPosition({495.f, 315.f});
+
+  m_exitText.emplace(m_uiFont, "X", 10);
+  m_exitText->setFillColor(sf::Color(245, 240, 220));
+
+  const sf::FloatRect eb = m_exitText->getLocalBounds();
+  m_exitText->setOrigin({eb.position.x + eb.size.x * 0.5f,
+                         eb.position.y + eb.size.y * 0.5f});
+  m_exitText->setPosition({m_exitBtn.getPosition().x + 10.f,
+                           m_exitBtn.getPosition().y + 10.f});
 }
 
 void BuilderScene::initCurrencyUi()
@@ -136,7 +158,7 @@ void BuilderScene::restoreState(const std::optional<GameState> &state)
       for (auto &o : m_city.objects())
       {
         if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
-          p->applyOffline(delta);
+          p->applyOffline(delta,m_inventory);
       }
     }
     m_saveEnabled = true;
@@ -211,6 +233,7 @@ void BuilderScene::loadTextures()
   Corn::loadTexture();
   Carrot::loadTexture();
   Potato::loadTexture();
+  Bakery::loadTexture();
 
   m_collectIcons.clear();
   sf::Texture coin;
@@ -432,7 +455,7 @@ void BuilderScene::update(float dt)
     for (auto &o : m_city.objects())
     {
       if (auto *p = dynamic_cast<MoneyProducer *>(o.get()))
-        p->tick(seconds);
+        p->tick(seconds,m_inventory);
     }
   }
 
@@ -641,19 +664,30 @@ void BuilderScene::update(float dt)
 
     if (rightClick)
     {
-        if (!p)
-          return;
-        if (p->canUpgrade(m_city))
-        {
-            showUpgradePrompt(mouseUI, p);
-        }
-        else if (p->maxLevel() > 1)
-        {
-            showToast("Max level reached", 1.2f);
-        }
+      if (!p)
         return;
+      if (p->canUpgrade(m_city))
+      {
+        showUpgradePrompt(mouseUI, p);
+      }
+      else if (p->maxLevel() > 1)
+      {
+        showToast("Max level reached", 1.2f);
+      }
+      return;
     }
-    
+    if (leftClick && m_exitBtn.getGlobalBounds().contains(mouseUI))
+    {
+      saveGame();
+      m_scenes.set(std::make_unique<MainMenuScreen>(
+          m_window,
+          m_scenes,
+          static_cast<float>(cfg::InternalW),
+          static_cast<float>(cfg::InternalH),
+          cfg::TileSize));
+      return;
+    }
+
     if (leftClick)
     {
       if (p)
@@ -1076,6 +1110,9 @@ void BuilderScene::render(sf::RenderTarget &target)
     m_upgradeYes.draw(target);
     m_upgradeNo.draw(target);
   }
+  target.draw(m_exitBtn);
+  if (m_exitText)
+    target.draw(*m_exitText);
 }
 
 void BuilderScene::loadFont()
@@ -1099,11 +1136,15 @@ void BuilderScene::showUpgradePrompt(const sf::Vector2f &uiPos, Placeable *p)
 
   m_upgradeBg.setSize({160.f, 60.f});
   m_upgradeBg.setFillColor(sf::Color(40, 40, 40, 220));
+
   sf::Vector2f pos = uiPos + sf::Vector2f{8.f, 8.f};
+
   const sf::Vector2f viewSize = m_uiView.getSize();
   const sf::Vector2f size = m_upgradeBg.getSize();
+
   pos.x = std::clamp(pos.x, 6.f, viewSize.x - size.x - 6.f);
   pos.y = std::clamp(pos.y, 6.f, viewSize.y - size.y - 6.f);
+
   m_upgradeBg.setPosition(pos);
 
   m_upgradeText.setFont(m_uiFont);
@@ -1112,10 +1153,12 @@ void BuilderScene::showUpgradePrompt(const sf::Vector2f &uiPos, Placeable *p)
   m_upgradeText.setString(
       "Upgrade to level " + std::to_string(p->level() + 1) +
       "\nCost: " + std::to_string(cost.amount));
-  m_upgradeText.setPosition(uiPos + sf::Vector2f{6.f, 6.f});
+  m_upgradeText.setPosition(pos + sf::Vector2f{6.f, 6.f});
 
-  m_upgradeYes = PanelButton({50.f, 16.f}, uiPos + sf::Vector2f{8.f, 38.f});
-  m_upgradeNo = PanelButton({50.f, 16.f}, uiPos + sf::Vector2f{90.f, 38.f});
+  const float btnY = pos.y + size.y - 20.f;
+
+  m_upgradeYes = PanelButton({50.f, 16.f}, {pos.x + 8.f, btnY});
+  m_upgradeNo = PanelButton({50.f, 16.f}, {pos.x + size.x - 58.f, btnY});
 
   m_upgradeYes.setText(m_uiFont, "Upgrade", 7, sf::Color::Black);
   m_upgradeNo.setText(m_uiFont, "Cancel", 7, sf::Color::Black);

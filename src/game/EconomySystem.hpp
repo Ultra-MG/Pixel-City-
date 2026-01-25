@@ -1,5 +1,5 @@
 #pragma once
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 
 class EconomySystem {
 public:

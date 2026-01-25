@@ -1,4 +1,3 @@
-// world/CropFactory.hpp
 #pragma once
 #include "world/Crop.hpp"
 #include "world/CropRegistry.hpp"

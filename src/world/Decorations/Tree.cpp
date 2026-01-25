@@ -1,4 +1,3 @@
-// world/Decorations/Tree.cpp
 #include "world/Decorations/Tree.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

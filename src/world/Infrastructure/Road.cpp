@@ -1,4 +1,3 @@
-// world/Road.cpp
 #include "world/Infrastructure/Road.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

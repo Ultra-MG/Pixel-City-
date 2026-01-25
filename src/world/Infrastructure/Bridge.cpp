@@ -1,4 +1,3 @@
-// world/Infrastructure/Bridge.cpp
 #include "world/Infrastructure/Bridge.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

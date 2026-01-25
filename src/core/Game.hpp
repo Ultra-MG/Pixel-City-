@@ -4,7 +4,8 @@
 #include "graphics/PixelRenderer.hpp"
 #include "engine/SceneManager.hpp"
 
-class Game {
+class Game
+{
 public:
   Game();
   void run();
@@ -13,4 +14,6 @@ private:
   sf::RenderWindow m_window;
   PixelRenderer m_pixel;
   SceneManager m_scenes;
-};
+  void registerTools();
+  void createSplashScreen();
+  };

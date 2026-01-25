@@ -1,4 +1,3 @@
-// world/Decorations/Bench.cpp
 #include "world/Decorations/Bench.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

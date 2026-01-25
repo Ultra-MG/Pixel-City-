@@ -9,6 +9,7 @@
 #include <SFML/Graphics/Font.hpp>
 #include "game/Cost.hpp"
 
+class Inventory;
 class TownHall : public Building, public MoneyProducer
 {
 public:
@@ -26,15 +27,13 @@ public:
         return BuildTool::PlaceTownHall;
     }
 
-    // MoneyProducer
     int moneyPerMinute() const override;
     int storedMoney() const override;
     void setStoredMoney(int v) override;
-    void applyOffline(std::int64_t seconds) override;
-    void tick(std::int64_t seconds) override;
+    void applyOffline(std::int64_t seconds, Inventory& inventory) override;
+    void tick(std::int64_t seconds, Inventory& inventory) override;
     bool canBeDeleted() const override { return false; }
 
-    // Save
     void saveTo(PlacedObject &out) const override;
     void loadFrom(const PlacedObject &in) override;
 

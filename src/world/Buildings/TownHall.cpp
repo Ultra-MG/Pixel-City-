@@ -1,6 +1,7 @@
 #include "world/Buildings/TownHall.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include "game/Inventory.hpp"
 #include "core/Config.hpp"
 
 sf::Texture TownHall::s_texture;
@@ -43,9 +44,9 @@ bool TownHall::requiresRoadAccess() const
     return true;
 }
 
-void TownHall::tick(std::int64_t seconds)
+void TownHall::tick(std::int64_t seconds,Inventory& inventory)
 {
-    MoneyProducer::tick(seconds);
+    MoneyProducer::tick(seconds , inventory);
 }
 
 bool TownHall::canBePlaced(const City &) const
@@ -68,9 +69,9 @@ void TownHall::setStoredMoney(int v)
     m_storedMoney = v;
 }
 
-void TownHall::applyOffline(std::int64_t seconds)
+void TownHall::applyOffline(std::int64_t seconds, Inventory& inventory)
 {
-    MoneyProducer::applyOffline(seconds);
+    MoneyProducer::applyOffline(seconds, inventory);
 }
 
 void TownHall::saveTo(PlacedObject &out) const
@@ -89,8 +90,6 @@ void TownHall::loadFrom(const PlacedObject &in)
         m_storedMoney = 0;
 }
 
-// ===== Rendering =====
-
 void TownHall::render(sf::RenderTarget &target, const sf::Font &font) const
 {
 
@@ -102,5 +101,4 @@ void TownHall::render(sf::RenderTarget &target, const sf::Font &font) const
                 float(h * cfg::TileSize) / s_texture.getSize().y});
     target.draw(s);
 
-    // coin indicator handled globally
 }

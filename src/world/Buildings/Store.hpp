@@ -1,4 +1,3 @@
-// world/Buildings/Store.hpp
 #pragma once
 
 #include "world/Building.hpp"
@@ -9,6 +8,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "game/Cost.hpp"
 
+class Inventory;
 class Store : public Building, public MoneyProducer
 {
 public:
@@ -26,14 +26,13 @@ public:
         return BuildTool::PlaceStore;
     }
 
-    // MoneyProducer (same pattern as TownHall)
     int moneyPerMinute() const override;
     int storedMoney() const override;
     void setStoredMoney(int v) override;
-    void applyOffline(std::int64_t seconds) override;
-    void tick(std::int64_t seconds) override;
+    void applyOffline(std::int64_t seconds, Inventory& inventory) override;
+    void tick(std::int64_t seconds,Inventory& inventory) override;
     int collectMoney();
-    // Save
+
     void saveTo(PlacedObject &out) const override;
     void loadFrom(const PlacedObject &in) override;
 

@@ -1,5 +1,5 @@
 #include "game/SidePanel.hpp"
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 #include "core/Config.hpp"
 #include "game/BuildToolFactory.hpp"
 #include <string>
@@ -7,6 +7,12 @@
 
 SidePanel::SidePanel(float collapsedW, float expandedW, float height)
     : m_collapsedW(collapsedW), m_expandedW(expandedW), m_height(height)
+{
+    initPanel();
+    rebuildButtons();
+}
+
+void SidePanel::initPanel()
 {
     m_bg.setPosition({0.f, 0.f});
     m_bg.setSize({0.f, 0.f});
@@ -29,13 +35,11 @@ SidePanel::SidePanel(float collapsedW, float expandedW, float height)
     }
     m_coinTexture->setSmooth(false);
     m_diamondTexture->setSmooth(false);
-    m_discardButton = PanelButton(sf::Vector2f{24.f, 24.f}, sf::Vector2f{expandedW - 34.f, 6.f});
+    m_discardButton = PanelButton(sf::Vector2f{24.f, 24.f}, sf::Vector2f{m_expandedW - 34.f, 6.f});
     m_discardButton.setOutline(sf::Color(160, 80, 80), 1.f);
     m_discardButton.loadImage("assets/ui/discard.png");
     m_discardButton.setImageSize({16.f, 16.f});
     m_discardButton.setImageOffset({4.f, 4.f});
-
-    rebuildButtons();
 }
 
 void SidePanel::toggle()
@@ -68,7 +72,7 @@ void SidePanel::rebuildButtons()
     if (m_page == Page::Entries)
     {
 
-        m_buttons.emplace_back(sf::Vector2f{24.f, 24.f}, sf::Vector2f{120.f, 150.f});
+        m_buttons.emplace_back(sf::Vector2f{24.f, 24.f}, sf::Vector2f{120.f, 300.f});
         auto &b = m_buttons.back();
         b.isBack = true;
         b.category = BuildCategory::Infrastructure;

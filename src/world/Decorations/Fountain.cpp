@@ -15,7 +15,7 @@ void Fountain::loadTexture()
 
 bool Fountain::canBePlaced(const City &) const
 {
-    return true; // does not block
+    return true;
 }
 
 void Fountain::render(sf::RenderTarget &target,const sf::Font& font) const

@@ -1,4 +1,3 @@
-// world/House.hpp
 #pragma once
 
 #include "world/Building.hpp"

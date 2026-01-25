@@ -1,4 +1,3 @@
-// world/Decorations/LampPost.hpp
 #pragma once
 
 #include "world/Decoration.hpp"

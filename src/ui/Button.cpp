@@ -5,12 +5,6 @@ Button::Button()
 {
 }
 
-// Button::Button(sf::Vector2f size, sf::Vector2f pos)
-//     : m_bg(size)
-// {
-//     m_bg.setPosition(pos);
-// }
-
 Button::Button(sf::Vector2f size, sf::Vector2f pos)
 {
     m_bg.setSize(size);

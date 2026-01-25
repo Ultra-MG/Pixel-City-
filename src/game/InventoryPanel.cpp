@@ -5,6 +5,11 @@
 InventoryPanel::InventoryPanel(float collapsedW, float expandedW, float height)
     : m_collapsedW(collapsedW), m_expandedW(expandedW), m_height(height)
 {
+    initInventoryPanel();
+}
+
+void InventoryPanel::initInventoryPanel()
+{
     m_bg.setPosition({0.f, 0.f});
     m_bg.setSize({0.f, 0.f});
     m_bg.setFillColor(sf::Color(30, 30, 30, 220));

@@ -1,10 +1,10 @@
-// world/MoneyProducer.hpp (MODIFIED)
 #pragma once
 #include <cstdint>
 #include <algorithm>
 #include <string>
 #include "world/Collectable.hpp"
 
+class Inventory;
 class MoneyProducer : public Collectable
 {
 public:
@@ -25,7 +25,7 @@ public:
         return storedMoney() >= collectThreshold();
     }
 
-    virtual void tick(std::int64_t seconds)
+    virtual void tick(std::int64_t seconds,Inventory& inventory )
     {
         m_fractional += seconds * moneyPerMinute();
 
@@ -53,9 +53,9 @@ public:
         return "coin";
     }
 
-    virtual void applyOffline(std::int64_t seconds)
+    virtual void applyOffline(std::int64_t seconds,Inventory& inventory)
     {
-        tick(seconds);
+        tick(seconds,inventory);
     }
 
 private:

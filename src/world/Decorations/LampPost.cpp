@@ -1,4 +1,3 @@
-// world/Decorations/LampPost.cpp
 #include "world/Decorations/LampPost.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 

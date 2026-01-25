@@ -1,4 +1,4 @@
-#include "game/Economy.hpp"
+#include "game/Wallet.hpp"
 
 Wallet::Wallet(int money, int diamonds)
     : m_money(money), m_diamonds(diamonds)
